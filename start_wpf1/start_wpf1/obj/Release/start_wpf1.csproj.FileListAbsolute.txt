@@ -12,3 +12,17 @@ D:\Learn\1_wpf\start_wpf\start_wpf1\start_wpf1\obj\Release\start_wpf1.csproj.Gen
 D:\Learn\1_wpf\start_wpf\start_wpf1\start_wpf1\obj\Release\start_wpf1.csproj.CoreCompileInputs.cache
 D:\Learn\1_wpf\start_wpf\start_wpf1\start_wpf1\obj\Release\start_wpf1.exe
 D:\Learn\1_wpf\start_wpf\start_wpf1\start_wpf1\obj\Release\start_wpf1.pdb
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\bin\Release\start_wpf1.exe.config
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\bin\Release\start_wpf1.exe
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\bin\Release\start_wpf1.pdb
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Release\Views\MainWindow.g.cs
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Release\App.g.cs
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Release\start_wpf1_MarkupCompile.cache
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Release\start_wpf1_MarkupCompile.lref
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Release\Views\MainWindow.baml
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Release\start_wpf1.g.resources
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Release\start_wpf1.Properties.Resources.resources
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Release\start_wpf1.csproj.GenerateResource.cache
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Release\start_wpf1.csproj.CoreCompileInputs.cache
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Release\start_wpf1.exe
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Release\start_wpf1.pdb

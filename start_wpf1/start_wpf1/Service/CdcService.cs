@@ -18,6 +18,7 @@ namespace start_wpf1.Service
         public event Action<string> ConnectionLog;
 
         public bool IsOpen => _port?.IsOpen ?? false;
+
         public void ClearBuffer()
         {
             _receiveBuffer.Clear();
@@ -34,7 +35,6 @@ namespace start_wpf1.Service
                 _port = new SerialPort(portName, baudRate, parity, dataBits, stopBits)
                 {
                     Encoding = Encoding.ASCII,
-                   // Encoding = Encoding.UTF8,
                     ReadTimeout = 1000,
                     WriteTimeout = 1000
                 };

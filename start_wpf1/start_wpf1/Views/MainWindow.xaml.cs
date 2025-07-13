@@ -16,11 +16,15 @@ namespace start_wpf1
     public partial class MainWindow : Window
     {
         private readonly CdcViewModel _cdcViewModel;
+        private DispatcherTimer _comScanTimer;
+        private string[] _lastPortNames = Array.Empty<string>();
+        private bool _isComConnected = false;
 
         public MainWindow()
         {
             InitializeComponent();
-
+            _lastPortNames = SerialPort.GetPortNames();
+            SetupAutoComScan(); // gọi hàm khởi động quét COM tự động
             var cdcService = new CdcService();
             _cdcViewModel = new CdcViewModel(cdcService);
             DataContext = _cdcViewModel;
@@ -31,15 +35,34 @@ namespace start_wpf1
             };
             _cdcViewModel.AutoScrollRequest += () =>
             {
-                txtReceiveCdcData.ScrollToEnd(); // ✔ đúng với TextBox
+                txtReceiveCdcData.ScrollToEnd(); 
+            };
+            LoadComPorts();
+            dgCdcSend.ItemsSource = _cdcViewModel.FramesToSend;
+
+        }
+        private void SetupAutoComScan()
+        {
+            _comScanTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
             };
 
+            _comScanTimer.Tick += (s, e) =>
+            {
+                if (_isComConnected) return;
 
-            LoadComPorts();
+                string[] currentPorts = SerialPort.GetPortNames();
 
-            dgCdcSend.ItemsSource = _cdcViewModel.FramesToSend;
+                if (!_lastPortNames.SequenceEqual(currentPorts))
+                {
+                    _lastPortNames = currentPorts;
+                    LoadComPorts();
+                }
+            };
+
+            _comScanTimer.Start();
         }
-
 
 
         private void btnSendCdcData_Click(object sender, RoutedEventArgs e)
@@ -54,6 +77,7 @@ namespace start_wpf1
 
         private void BtnOpenCom_Click(object sender, RoutedEventArgs e)
         {
+            _isComConnected = true;
             string port = cmbComPorts.SelectedItem?.ToString() ?? "";
             int baud = int.Parse(((ComboBoxItem)cmbBaudRate.SelectedItem).Content.ToString());
             int databits = int.Parse(((ComboBoxItem)cmbDataBits.SelectedItem).Content.ToString());
@@ -86,6 +110,7 @@ namespace start_wpf1
             {
                 MessageBox.Show($"Lỗi khi đóng COM: {ex.Message}");
             }
+            _isComConnected = false;
         }
 
         private void btnClearCdcReceive_Click(object sender, RoutedEventArgs e)
@@ -105,27 +130,54 @@ namespace start_wpf1
         }
         private void LoadComPorts()
         {
-            var current = cmbComPorts.SelectedItem?.ToString();
+            var availablePorts = SerialPort.GetPortNames()
+                .Distinct()
+                .Where(IsComPortAvailable)   // chỉ giữ những COM thật sự mở được
+                .OrderBy(p => p)
+                .ToArray();
+
+            var selected = cmbComPorts.SelectedItem as string;
+
+            var comboBoxPorts = cmbComPorts.Items.Cast<string>().ToArray();
+            if (availablePorts.SequenceEqual(comboBoxPorts))
+                return;
+
             cmbComPorts.Items.Clear();
 
-            var ports = SerialPort.GetPortNames();
-            Array.Sort(ports); // sắp xếp COM1, COM2, ...
-
-            foreach (var port in ports)
-            {
+            foreach (var port in availablePorts)
                 cmbComPorts.Items.Add(port);
-            }
 
-            if (ports.Contains(current))
+            if (!string.IsNullOrEmpty(selected) && availablePorts.Contains(selected))
+                cmbComPorts.SelectedItem = selected;
+            else
+                cmbComPorts.SelectedIndex = -1;
+
+            Console.WriteLine("Current Ports: " + string.Join(", ", availablePorts));
+        }
+
+        private bool IsComPortAvailable(string portName)
+        {
+            try
             {
-                cmbComPorts.SelectedItem = current;
+                using (var testPort = new SerialPort(portName))
+                {
+                    testPort.Open();
+                    testPort.Close();
+                    return true;
+                }
             }
-            else if (cmbComPorts.Items.Count > 0)
+            catch (UnauthorizedAccessException)
             {
-                cmbComPorts.SelectedIndex = 0;
+                // Có thiết bị COM đang chiếm giữ port → vẫn là COM thật
+                return true;
+            }
+            catch
+            {
+                // Lỗi khác (ví dụ COM ghost) → không dùng được
+                return false;
             }
         }
-        
+
 
 
     }
