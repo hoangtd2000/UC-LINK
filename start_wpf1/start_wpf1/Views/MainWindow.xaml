@@ -1,0 +1,288 @@
+﻿<Window x:Class="start_wpf1.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:start_wpf1"
+        xmlns:models="clr-namespace:start_wpf1.Models"
+        xmlns:vm="clr-namespace:start_wpf1.ViewModels"  
+        Title="STM32 USB Composite Communicator" Height="650" Width="800">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Header="Kết nối thiết bị" Grid.Row="0" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <Label Content="Trạng thái:" FontWeight="Bold"/>
+                <TextBlock x:Name="txtConnectionStatus" Text="Chưa kết nối" VerticalAlignment="Center" Margin="5,0"/>
+                <Label Content="Tên thiết bị:" FontWeight="Bold" Margin="20,0,0,0"/>
+                <TextBlock x:Name="txtDeviceName" Text="N/A" VerticalAlignment="Center" Margin="5,0"/>
+            </StackPanel>
+        </GroupBox>
+
+        <TabControl Grid.Row="1">
+            <TabItem Header="CDC qua UART">
+                <Grid Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="4*"/>
+                        <ColumnDefinition Width="6*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <GroupBox Header="Cấu hình UART" Grid.Row="0" Grid.Column="0" Margin="0,0,10,10"
+          HorizontalAlignment="Stretch" VerticalAlignment="Top">
+                        <StackPanel Margin="5" Orientation="Vertical">
+
+                            <!-- Dòng 1: COM + Baudrate + Hiển thị kiểu dữ liệu -->
+                            <WrapPanel Margin="0,5,0,0" VerticalAlignment="Center">
+                                <Label Content="COM :" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="cmbComPorts" Width="70" Margin="5,0"/>
+
+                                <Label Content="Baud :" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                <ComboBox x:Name="cmbBaudRate" Width="70" Margin="5,0">
+                                    <ComboBoxItem Content="9600"/>
+                                    <ComboBoxItem Content="19200"/>
+                                    <ComboBoxItem Content="38400"/>
+                                    <ComboBoxItem Content="115200" IsSelected="True"/>
+                                    <ComboBoxItem Content="230400"/>
+                                    <ComboBoxItem Content="460800"/>
+                                    <ComboBoxItem Content="921600"/>
+                                </ComboBox>
+                                
+                            </WrapPanel>
+
+                            <!-- Dòng 2: DataBits + Parity + StopBits -->
+                            <WrapPanel Margin="0,5,0,0" VerticalAlignment="Center">
+                                <Label Content="Data Bits:" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="cmbDataBits" Width="50" Margin="5,0">
+                                    <ComboBoxItem Content="7"/>
+                                    <ComboBoxItem Content="8" IsSelected="True"/>
+                                </ComboBox>
+
+                                <Label Content="Parity:" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="cmbParity" Width="70" Margin="5,0">
+                                    <ComboBoxItem Content="None" IsSelected="True"/>
+                                    <ComboBoxItem Content="Odd"/>
+                                    <ComboBoxItem Content="Even"/>
+                                </ComboBox>
+
+                                <Label Content="Stop Bits:" Margin="1,0,0,0" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="cmbStopBits" Width="50" Margin="5,0">
+                                    <ComboBoxItem Content="One" IsSelected="True"/>
+                                    <ComboBoxItem Content="Two"/>
+                                </ComboBox>
+                                <Label Content="Display:" Margin="1,0,0,0" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="cmbDisplayMode" Width="70" Margin="5,0" SelectedIndex="0">
+                                    <ComboBoxItem Content="ASCII"/>
+                                    <ComboBoxItem Content="Hex"/>
+                                    <ComboBoxItem Content="Dec"/>
+                                </ComboBox>
+                            </WrapPanel>
+
+                            <!-- Dòng 3: CR LF + Mở/Đóng COM -->
+                            <WrapPanel Margin="0,10,0,0">
+                                <CheckBox x:Name="chkCR" Content="CR" Margin="0,0,10,0"/>
+                                <CheckBox x:Name="chkLF" Content="LF" Margin="0,0,20,0"/>
+
+                                <Button x:Name="btnOpenCom" Content="Open COM" Width="70" Margin="0,0,10,0" Click="BtnOpenCom_Click"/>
+                                <Button x:Name="btnCloseCom" Content="Close COM" Width="80" IsEnabled="False" Click="btnCloseCom_Click"/>
+                            </WrapPanel>
+
+                        </StackPanel>
+                    </GroupBox>
+
+
+                    <GroupBox Header="Gửi dữ liệu" Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <DataGrid x:Name="dgCdcSend" Grid.Row="0" AutoGenerateColumns="False" CanUserAddRows="True" CanUserDeleteRows="True"
+                                      HeadersVisibility="Column" SelectionMode="Single">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Data" Binding="{Binding DataString, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                                    <DataGridTemplateColumn Header="Type" Width="80">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <ComboBox SelectedValue="{Binding DataType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                      SelectedValuePath="Content">
+                                                    <ComboBoxItem Content="ASCII" />
+                                                    <ComboBoxItem Content="Hex" />
+                                                    <ComboBoxItem Content="Dec" />
+                                                </ComboBox>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+
+                                        <DataGridTemplateColumn.CellEditingTemplate>
+                                            <DataTemplate>
+                                                <ComboBox SelectedValue="{Binding DataType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                      SelectedValuePath="Content">
+                                                    <ComboBoxItem Content="ASCII" />
+                                                    <ComboBoxItem Content="Hex" />
+                                                    <ComboBoxItem Content="Dec" />
+                                                </ComboBox>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellEditingTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="Gửi" Width="60">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="Gửi"
+                    Command="{Binding DataContext.SendCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                    CommandParameter="{Binding}" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </GroupBox>
+
+                    <GroupBox Header="Nhận dữ liệu" Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" Margin="10,0,0,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBox x:Name="txtReceiveCdcData"
+         Text="{Binding ReceiveLog, UpdateSourceTrigger=PropertyChanged}"
+         IsReadOnly="True"
+         AcceptsReturn="True"
+         VerticalScrollBarVisibility="Auto"
+         FontFamily="Consolas"
+         FontSize="14"
+         TextWrapping="Wrap"/>
+
+
+                            <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Right" Margin="0,5,0,0">
+                               
+                                <Button x:Name="btnClearCdcReceive" Content="Xóa" Margin="0,0,0,0" Click="btnClearCdcReceive_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="USB HID qua CAN Protocol">
+                <Grid Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <GroupBox Header="Cấu hình CAN Protocol" Grid.Row="0" Grid.Column="0" Margin="0,0,10,10"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Top">
+                        <StackPanel Margin="5">
+                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                <Label Content="Baud Rate:"/>
+                                <ComboBox x:Name="cmbCanBaudRate" Width="100">
+                                    <ComboBoxItem Content="125K" IsSelected="True"/>
+                                    <ComboBoxItem Content="500K"/>
+                                </ComboBox>
+                                <Button x:Name="btnConnectCan" Content="Kết nối CAN" Margin="10,0,0,0"/>
+                                <Button x:Name="btnDisconnectCan" Content="Ngắt kết nối CAN" Margin="5,0,0,0" IsEnabled="False"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                <Label Content="CAN ID Filter (Hex, cách nhau bằng dấu phẩy):"/>
+                                <TextBox x:Name="txtCanIdFilter" Width="200" Text="0x123, 0x456"/>
+                            </StackPanel>
+                            <Button x:Name="btnApplyCanConfig" Content="Áp dụng cấu hình CAN" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox Header="Gửi CAN Frame" Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <DataGrid x:Name="dgCanSend" Grid.Row="0" AutoGenerateColumns="False" CanUserAddRows="True" CanUserDeleteRows="True"
+                                      HeadersVisibility="Column" SelectionMode="Single">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId, UpdateSourceTrigger=PropertyChanged}" Width="65"/>
+                                    <DataGridTemplateColumn Header="DLC" Width="45">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <ComboBox SelectedItem="{Binding Dlc, Mode=TwoWay}">
+                                                    <ComboBoxItem Content="0"/>
+                                                    <ComboBoxItem Content="1"/>
+                                                    <ComboBoxItem Content="2"/>
+                                                    <ComboBoxItem Content="3"/>
+                                                    <ComboBoxItem Content="4"/>
+                                                    <ComboBoxItem Content="5"/>
+                                                    <ComboBoxItem Content="6"/>
+                                                    <ComboBoxItem Content="7"/>
+                                                    <ComboBoxItem Content="8"/>
+                                                </ComboBox>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                        <DataGridTemplateColumn.CellEditingTemplate>
+                                            <DataTemplate>
+                                                <ComboBox SelectedItem="{Binding Dlc, Mode=TwoWay}">
+                                                    <ComboBoxItem Content="0"/>
+                                                    <ComboBoxItem Content="1"/>
+                                                    <ComboBoxItem Content="2"/>
+                                                    <ComboBoxItem Content="3"/>
+                                                    <ComboBoxItem Content="4"/>
+                                                    <ComboBoxItem Content="5"/>
+                                                    <ComboBoxItem Content="6"/>
+                                                    <ComboBoxItem Content="7"/>
+                                                    <ComboBoxItem Content="8"/>
+                                                </ComboBox>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellEditingTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Data (Hex)" Binding="{Binding DataHex, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                                    <DataGridCheckBoxColumn Header="Cycle" Binding="{Binding IsCyclic}" Width="50"/>
+                                    <DataGridTextColumn Header="Time (ms)" Binding="{Binding CycleTimeMs, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
+                                    <DataGridCheckBoxColumn Header="Event" Binding="{Binding IsEventTriggered}" Width="50"/>
+                                    <DataGridTemplateColumn Header="Gửi" Width="60">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="Gửi" Click="btnSendCanFrame_Click" Tag="{Binding}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </GroupBox>
+
+                    <GroupBox Header="Nhận CAN Frames" Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" Margin="10,0,0,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <DataGrid x:Name="dgCanReceive" Grid.Row="0" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" Width="80"/>
+                                    <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId}" Width="70"/>
+                                    <DataGridTextColumn Header="DLC" Binding="{Binding Dlc}" Width="40"/>
+                                    <DataGridTextColumn Header="Data" Binding="{Binding DataHex}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Right" Margin="0,5,0,0">
+          
+                                <Button x:Name="btnClearCanReceive" Content="Xóa" Margin="0,0,0,0" Click="btnClearCanReceive_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>
