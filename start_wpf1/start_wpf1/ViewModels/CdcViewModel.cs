@@ -10,6 +10,8 @@ using start_wpf1.Helpers;
 using System.Text;
 using System.Windows.Threading;
 using System.Linq;
+using System.Threading;
+using System.IO;
 
 namespace start_wpf1.ViewModels
 {
@@ -164,6 +166,187 @@ namespace start_wpf1.ViewModels
             _receiveBuffer.Clear();       // Xóa tạm
             ReceiveLog = string.Empty;    // Xóa UI
             _cdcService.ClearBuffer();    // Clear buffer SerialPort
+        }
+        private void LogConnection(string message)
+        {
+            ConnectionLogs.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
+        }
+        /*
+        public void SendFile(string filePath)
+        {
+            if (!File.Exists(filePath)) return;
+
+            try
+            {
+                var lines = File.ReadAllLines(filePath);
+                foreach (var line in lines)
+                {
+                    string data = line;
+                    if (GetAppendCR?.Invoke() == true) data += "\r";
+                    if (GetAppendLF?.Invoke() == true) data += "\n";
+
+                    var bytes = Encoding.ASCII.GetBytes(data);
+                    _cdcService.SendBytes(bytes);
+
+                    Thread.Sleep(10); // gửi từ từ, tránh nghẽn thiết bị
+                }
+
+                LogConnection($"[INFO] Đã gửi file: {Path.GetFileName(filePath)} ({lines.Length} dòng)");
+            }
+            catch (Exception ex)
+            {
+                LogConnection($"[ERR] Lỗi gửi file: {ex.Message}");
+            }
+        }
+        */
+        /*
+        public void SendFile(string filePath)
+        {
+            if (!File.Exists(filePath)) return;
+
+            try
+            {
+                string ext = Path.GetExtension(filePath).ToLower();
+                string fileName = Path.GetFileName(filePath);
+
+                if (ext == ".bin")
+                {
+                    byte[] binData = File.ReadAllBytes(filePath);
+                    _cdcService.SendBytes(binData);
+                    LogConnection($"[INFO] Đã gửi file BIN ({binData.Length} bytes)");
+                }
+                else
+                {
+                    var lines = File.ReadAllLines(filePath);
+                    foreach (var line in lines)
+                    {
+                        byte[] dataBytes;
+
+                        if (ext == ".hex")
+                        {
+                            // A1 B2 → [0xA1, 0xB2] + thêm \r\n
+                            dataBytes = Helpers.DataConverter.ConvertToBytes(line, "HEX")
+                                .Concat(new byte[] { 0x0D, 0x0A }) // \r\n
+                                .ToArray();
+                        }
+                        else if (ext == ".dec")
+                        {
+                            dataBytes = Helpers.DataConverter.ConvertToBytes(line, "DEC")
+                                .Concat(new byte[] { 0x0D, 0x0A })
+                                .ToArray();
+                        }
+                        else // .txt hoặc mặc định → ASCII
+                        {
+                            string data = line;
+                            if (GetAppendCR?.Invoke() == true) data += "\r";
+                            if (GetAppendLF?.Invoke() == true) data += "\n";
+
+                            dataBytes = Encoding.ASCII.GetBytes(data);
+                        }
+
+                        _cdcService.SendBytes(dataBytes);
+                        Thread.Sleep(10);
+                    }
+
+                    LogConnection($"[INFO] Đã gửi file {fileName} ({lines.Length} dòng)");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogConnection($"[ERR] Gửi file thất bại: {ex.Message}");
+            }
+        }
+        */
+        public void SendFile(string filePath)
+        {
+            if (!File.Exists(filePath)) return;
+
+            try
+            {
+                string ext = Path.GetExtension(filePath).ToLower();
+                string fileName = Path.GetFileName(filePath);
+
+                if (ext == ".bin")
+                {
+                    // Đọc file bin → convert sang chuỗi hex → gửi dạng ASCII
+                    byte[] raw = File.ReadAllBytes(filePath);
+                    string hexString = string.Join(" ", raw.Select(b => b.ToString("X2")));
+
+                    if (GetAppendCR?.Invoke() == true) hexString += "\r";
+                    if (GetAppendLF?.Invoke() == true) hexString += "\n";
+
+                    byte[] asciiBytes = Encoding.ASCII.GetBytes(hexString);
+                    _cdcService.SendBytes(asciiBytes);
+
+                    LogConnection($"[INFO] Đã gửi file BIN ({raw.Length} bytes dưới dạng chuỗi Hex)");
+                }
+                else
+                {
+                    // Gửi từng dòng
+                    var lines = File.ReadAllLines(filePath);
+
+                    foreach (var line in lines)
+                    {
+                        string data = line;
+
+                       /* if (ext == ".hex")
+                        {
+                            // GỬI DẠNG ASCII — giữ nguyên chuỗi như "A1 B2"
+                            if (GetAppendCR?.Invoke() == true) data += "\r";
+                            if (GetAppendLF?.Invoke() == true) data += "\n";
+
+                            byte[] asciiBytes = Encoding.ASCII.GetBytes(data);
+                            _cdcService.SendBytes(asciiBytes);
+                        }*/
+                       if (ext == ".hex")
+                        {
+                            // GỬI DẠNG ASCII — giữ nguyên chuỗi như "A1 B2"
+                            // nhưng luôn thêm \r\n, KHÔNG phụ thuộc vào checkbox
+                            string dataWithCrLf = line + "\r\n";
+                            byte[] asciiBytes = Encoding.ASCII.GetBytes(dataWithCrLf);
+                            _cdcService.SendBytes(asciiBytes);
+                        }
+                        else if (ext == ".dec")
+                        {
+                            // Convert DEC sang bytes rồi gửi (thêm \r\n)
+                            byte[] decBytes = Helpers.DataConverter.ConvertToBytes(line, "DEC")
+                                .Concat(new byte[] { 0x0D, 0x0A }) // CRLF cố định
+                                .ToArray();
+
+                            _cdcService.SendBytes(decBytes);
+                        }
+                        else // .txt hoặc không rõ
+                        {
+                            if (GetAppendCR?.Invoke() == true) data += "\r";
+                            if (GetAppendLF?.Invoke() == true) data += "\n";
+
+                            byte[] asciiBytes = Encoding.ASCII.GetBytes(data);
+                            _cdcService.SendBytes(asciiBytes);
+                        }
+
+                        Thread.Sleep(10);
+                    }
+
+                    LogConnection($"[INFO] Đã gửi file {fileName} ({lines.Length} dòng)");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogConnection($"[ERR] Gửi file thất bại: {ex.Message}");
+            }
+        }
+
+
+        public void SaveLogToFile(string filePath)
+        {
+            try
+            {
+                File.WriteAllText(filePath, ReceiveLog);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERR] Lỗi lưu log: {ex.Message}");
+            }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

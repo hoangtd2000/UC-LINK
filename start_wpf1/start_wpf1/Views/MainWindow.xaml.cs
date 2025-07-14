@@ -73,6 +73,33 @@ namespace start_wpf1
             _cdcViewModel.AppendCR = chkCR.IsChecked == true;
             _cdcViewModel.AppendLF = chkLF.IsChecked == true;
         }
+        private void btnSendFile_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Supported Files|*.txt;*.hex;*.bin;*.dec|All files|*.*"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                _cdcViewModel.SendFile(dialog.FileName);
+                txtLastSentFile.Text = $"Đã gửi: {System.IO.Path.GetFileName(dialog.FileName)}";
+            }
+        }
+        private void btnSaveLog_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "Text files (*.txt)|*.txt",
+                //Filter = "Supported Files|*.txt;*.hex;*.bin;*.dec|All files|*.*",
+                FileName = $"cdc_log_{DateTime.Now:yyyyMMdd_HHmmss}.txt"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                _cdcViewModel.SaveLogToFile(dialog.FileName);
+            }
+        }
 
         private void btnSendCanFrame_Click(object sender, RoutedEventArgs e)
         {

@@ -95,8 +95,10 @@
                     </GroupBox>
 
 
-                    <GroupBox Header="Gửi dữ liệu" Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
-                        <Grid>
+                    <TabControl Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
+                        <TabItem Header="Gửi từng dòng">
+                            <!--  <GroupBox Header="Gửi dữ liệu" Grid.Row="1" Grid.Column="0" Margin="0,0,10,0"> -->
+                            <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="Auto"/>
@@ -142,7 +144,24 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Grid>
-                    </GroupBox>
+                          <!--  </GroupBox> -->
+                        </TabItem>
+                        <!-- Tab 2: Gửi file / lưu log -->
+                        <TabItem Header="Gửi file / Lưu log">
+                            <GroupBox Header="Công cụ file" Margin="0">
+                                <StackPanel Margin="10">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <Button Content="Gửi file" Click="btnSendFile_Click" Width="100" Margin="0,0,10,0"/>
+                                        <TextBlock x:Name="txtLastSentFile" Text="Chưa gửi file" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <Button Content="Lưu log" Click="btnSaveLog_Click" Width="100"/>
+                                        <TextBlock Text=" (Lưu toàn bộ dữ liệu nhận được)" Margin="10,0"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </GroupBox>
+                        </TabItem>
+                    </TabControl>
 
                     <GroupBox Header="Nhận dữ liệu" Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" Margin="10,0,0,0">
                         <Grid>
