@@ -28,6 +28,9 @@ namespace start_wpf1
             var cdcService = new CdcService();
             _cdcViewModel = new CdcViewModel(cdcService);
             DataContext = _cdcViewModel;
+            _cdcViewModel.GetAppendCR = () => chkCR.IsChecked == true;
+            _cdcViewModel.GetAppendLF = () => chkLF.IsChecked == true;
+
             cmbDisplayMode.SelectionChanged += (s, e) =>
             {
                 var selected = ((ComboBoxItem)cmbDisplayMode.SelectedItem).Content.ToString();
@@ -67,7 +70,8 @@ namespace start_wpf1
 
         private void btnSendCdcData_Click(object sender, RoutedEventArgs e)
         {
-            
+            _cdcViewModel.AppendCR = chkCR.IsChecked == true;
+            _cdcViewModel.AppendLF = chkLF.IsChecked == true;
         }
 
         private void btnSendCanFrame_Click(object sender, RoutedEventArgs e)
@@ -132,12 +136,13 @@ namespace start_wpf1
         {
             var availablePorts = SerialPort.GetPortNames()
                 .Distinct()
-                .Where(IsComPortAvailable)   // chỉ giữ những COM thật sự mở được
+                .Where(IsComPortAvailable)
                 .OrderBy(p => p)
                 .ToArray();
 
             var selected = cmbComPorts.SelectedItem as string;
 
+            // So sánh danh sách hiện tại với danh sách đang hiển thị
             var comboBoxPorts = cmbComPorts.Items.Cast<string>().ToArray();
             if (availablePorts.SequenceEqual(comboBoxPorts))
                 return;
@@ -145,14 +150,26 @@ namespace start_wpf1
             cmbComPorts.Items.Clear();
 
             foreach (var port in availablePorts)
+            {
                 cmbComPorts.Items.Add(port);
+            }
 
+            // 👉 Nếu người dùng đã chọn COM nào đó → giữ lại
             if (!string.IsNullOrEmpty(selected) && availablePorts.Contains(selected))
+            {
                 cmbComPorts.SelectedItem = selected;
+            }
+            else if (availablePorts.Length > 0)
+            {
+                // ✅ Tự động chọn COM đầu tiên nếu danh sách không rỗng
+                cmbComPorts.SelectedIndex = 0;
+            }
             else
-                cmbComPorts.SelectedIndex = -1;
+            {
+                cmbComPorts.SelectedIndex = -1; // Không có COM nào
+            }
 
-            Console.WriteLine("Current Ports: " + string.Join(", ", availablePorts));
+            Console.WriteLine("Current Ports (filtered): " + string.Join(", ", availablePorts));
         }
 
         private bool IsComPortAvailable(string portName)

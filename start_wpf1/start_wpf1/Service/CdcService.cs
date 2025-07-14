@@ -3,7 +3,7 @@ using System.IO.Ports;
 using System.Text;
 using System.Threading;
 using start_wpf1.Models;
-
+using System.Linq;
 
 namespace start_wpf1.Service
 {
@@ -97,9 +97,6 @@ namespace start_wpf1.Service
         }
 
 
-
-
-
         private void DispatchData(string data)
         {
             _syncContext.Post(_ => DataReceived?.Invoke(data), null);
@@ -108,6 +105,32 @@ namespace start_wpf1.Service
         private void LogConnection(string msg)
         {
             _syncContext?.Post(_ => ConnectionLog?.Invoke(msg), null);
+        }
+        public void SendBytes(byte[] data)
+        {
+            try
+            {
+                if (!IsOpen)
+                {
+                    LogConnection("[WARN] Cổng COM chưa mở.");
+                    return;
+                }
+
+                _port.Write(data, 0, data.Length);
+
+                // 🧪 DEBUG: in ra dữ liệu byte gửi đi
+                string hex = string.Join(" ", data.Select(b => b.ToString("X2")));
+                Console.WriteLine($"[SEND] Bytes: {hex}");
+
+                string preview = Encoding.ASCII.GetString(data);
+                Console.WriteLine($"[SEND] String: {preview}");
+
+                _syncContext?.Post(_ => SentData?.Invoke(preview), null);
+            }
+            catch (Exception ex)
+            {
+                LogConnection($"[ERR] Gửi bytes thất bại: {ex.Message}");
+            }
         }
 
         public void Send(CdcFrame frame)

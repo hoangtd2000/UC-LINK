@@ -24,6 +24,10 @@ namespace start_wpf1.ViewModels
         public ObservableCollection<string> ConnectionLogs { get; } = new ObservableCollection<string>();
         public ObservableCollection<CdcFrame> FramesToSend { get; } = new ObservableCollection<CdcFrame>();
         private readonly StringBuilder _receiveBuilder = new StringBuilder();
+        public bool AppendCR { get; set; }
+        public bool AppendLF { get; set; }
+        public Func<bool> GetAppendCR { get; set; }
+        public Func<bool> GetAppendLF { get; set; }
 
         private string _receiveLog;
         public string ReceiveLog
@@ -100,27 +104,67 @@ namespace start_wpf1.ViewModels
             _cdcService.Close();
         }
 
-        private void SendFrame(CdcFrame frame)
+        /*private void SendFrame(CdcFrame frame)
         {
             _cdcService.Send(frame);
-        }
 
+        }*/
+        /*private void SendFrame(CdcFrame frame)
+        {
+            string data = frame.DataString;
+
+            if (AppendCR) data += "\r";
+            if (AppendLF) data += "\n";
+
+            byte[] dataBytes;
+
+            if (frame.DataType == "ASCII")
+            {
+                dataBytes = Encoding.ASCII.GetBytes(data); // ✅ giữ nguyên CR/LF
+            }
+            else
+            {
+                dataBytes = Helpers.DataConverter.ConvertToBytes(data, frame.DataType); // Hex / Dec
+            }
+
+            _cdcService.SendBytes(dataBytes);
+        }
+        */
+        private void SendFrame(CdcFrame frame)
+        {
+            // Lấy trạng thái từ UI
+            bool useCR = GetAppendCR?.Invoke() == true;
+            bool useLF = GetAppendLF?.Invoke() == true;
+
+            string data = frame.DataString;
+
+            if (useCR) data += "\r";
+            if (useLF) data += "\n";
+
+            byte[] dataBytes;
+
+            if (frame.DataType == "ASCII")
+            {
+                dataBytes = Encoding.ASCII.GetBytes(data);
+            }
+            else
+            {
+                dataBytes = Helpers.DataConverter.ConvertToBytes(data, frame.DataType);
+            }
+
+            _cdcService.SendBytes(dataBytes);
+        }
         private void OnDataReceived(string data)
         {
             _receiveBuffer.Append(data); // Ghi vào bộ nhớ tạm, chưa update UI
         }
 
-
-
-
-    public void ClearReceive()
+        public void ClearReceive()
         {
             _receiveBuffer.Clear();       // Xóa tạm
             ReceiveLog = string.Empty;    // Xóa UI
             _cdcService.ClearBuffer();    // Clear buffer SerialPort
         }
-
-
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string name = null) =>
