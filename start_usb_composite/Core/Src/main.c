@@ -29,11 +29,12 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usb_device.h"
+#include "usbd_hid_custom.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+extern USBD_HandleTypeDef hUsbDevice;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -60,7 +61,8 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+uint8_t hoang[64] = {0x11, 0x22, 0x33, 0x44,};
+volatile uint8_t tx_ok = 0 ;
 /* USER CODE END 0 */
 
 /**
@@ -113,6 +115,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  if((hUsbDevice.dev_state == USBD_STATE_CONFIGURED) ){//&& (tx_ok == 1)){
+		 // tx_ok =0;
+		  hoang[3]+=1;
+		  USBD_CUSTOM_HID_SendReport(&hUsbDevice, hoang, sizeof(hoang));
+	  }
+	  HAL_Delay(500);
 
   }
   /* USER CODE END 3 */

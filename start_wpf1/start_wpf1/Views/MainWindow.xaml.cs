@@ -19,7 +19,6 @@ namespace start_wpf1
         private DispatcherTimer _comScanTimer;
         private string[] _lastPortNames = Array.Empty<string>();
         private bool _isComConnected = false;
-
         public MainWindow()
         {
             InitializeComponent();
@@ -100,9 +99,12 @@ namespace start_wpf1
             }
         }
 
-        private void btnSendCanFrame_Click(object sender, RoutedEventArgs e)
+        private void btnClearCanReceive_Click(object sender, RoutedEventArgs e)
         {
-            
+            if (DataContext is CanViewModel vm)
+            {
+                vm.ReceivedFrames.Clear();
+            }
         }
 
         private void BtnOpenCom_Click(object sender, RoutedEventArgs e)
@@ -149,15 +151,15 @@ namespace start_wpf1
             _cdcViewModel.ClearReceive(); // gọi đúng cách
         }
 
-        private void btnClearCanReceive_Click(object sender, RoutedEventArgs e)
-        {
-            // TODO: xử lý xóa dữ liệu CAN Receive, ví dụ như:
-            dgCanReceive.ItemsSource = null;
-        }
+
 
         private void TxtReceiveCdcData_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
 
+        }
+        private void BtnConnectCan_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Đã bấm Kết nối CAN");
         }
         private void LoadComPorts()
         {
@@ -222,7 +224,17 @@ namespace start_wpf1
             }
         }
 
-
+ 
+        private void btnSendCanFrame_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is CanFrame frame)
+            {
+                if (DataContext is CanViewModel vm)
+                {
+                    vm.SendCanFrame(frame);
+                }
+            }
+        }
 
     }
 }

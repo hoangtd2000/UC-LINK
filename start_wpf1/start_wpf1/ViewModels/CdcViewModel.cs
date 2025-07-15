@@ -33,13 +33,10 @@ namespace start_wpf1.ViewModels
                 }
             }
         }
-
-
         public ObservableCollection<string> ReceiveLogs { get; } = new ObservableCollection<string>();
         public ObservableCollection<string> SendLogs { get; } = new ObservableCollection<string>();
         public ObservableCollection<string> ConnectionLogs { get; } = new ObservableCollection<string>();
         public ObservableCollection<CdcFrame> FramesToSend { get; } = new ObservableCollection<CdcFrame>();
-        //private readonly StringBuilder _receiveBuilder = new StringBuilder();
         public bool AppendCR { get; set; }
         public bool AppendLF { get; set; }
         public Func<bool> GetAppendCR { get; set; }

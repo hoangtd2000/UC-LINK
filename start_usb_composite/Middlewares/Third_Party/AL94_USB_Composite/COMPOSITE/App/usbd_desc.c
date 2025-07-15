@@ -63,15 +63,15 @@
   * @{
   */
 
-#define USBD_VID                      1155
+#define USBD_VID                      0x0078
 #define USBD_LANGID_STRING            1033
-#define USBD_MANUFACTURER_STRING      "STMicroelectronics"
+#define USBD_MANUFACTURER_STRING      "Hoang"
 #if (USBD_USE_DFU == 1)
 #define USBD_PID                      57105 // for DFU PID must be 57105, ST proprietary modification
 #else
-#define USBD_PID                      21156
+#define USBD_PID                      0x2000
 #endif
-#define USBD_PRODUCT_STRING           "STM32 COMPOSITE DEVICE"
+#define USBD_PRODUCT_STRING           "UC-Link DEVICE"
 #define USBD_CONFIGURATION_STRING     "CONFIGURATION 0"
 #define USBD_INTERFACE_STRING         "COMPOSITE INTERFACE"
 

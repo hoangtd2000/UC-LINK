@@ -210,7 +210,11 @@
                                     <ComboBoxItem Content="125K" IsSelected="True"/>
                                     <ComboBoxItem Content="500K"/>
                                 </ComboBox>
-                                <Button x:Name="btnConnectCan" Content="Kết nối CAN" Margin="10,0,0,0"/>
+                                <!--<Button x:Name="btnConnectCan" Content="Kết nối CAN" Margin="10,0,0,0"/> -->
+                                <Button x:Name="btnConnectCan"
+        Content="Kết nối CAN"
+        Command="{Binding ConnectCanCommand}"
+        Margin="10,0,0,0" Click="BtnConnectCan_Click"/>
                                 <Button x:Name="btnDisconnectCan" Content="Ngắt kết nối CAN" Margin="5,0,0,0" IsEnabled="False"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
@@ -228,7 +232,7 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <DataGrid x:Name="dgCanSend" Grid.Row="0" AutoGenerateColumns="False" CanUserAddRows="True" CanUserDeleteRows="True"
+                            <DataGrid x:Name="dgCanSend" ItemsSource="{Binding CanFrames}" Grid.Row="0" AutoGenerateColumns="False" CanUserAddRows="True" CanUserDeleteRows="True"
                                       HeadersVisibility="Column" SelectionMode="Single">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId, UpdateSourceTrigger=PropertyChanged}" Width="65"/>
@@ -287,7 +291,7 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <DataGrid x:Name="dgCanReceive" Grid.Row="0" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
+                            <DataGrid x:Name="dgCanReceive"  ItemsSource="{Binding ReceivedFrames}" Grid.Row="0" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" Width="80"/>
                                     <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId}" Width="70"/>

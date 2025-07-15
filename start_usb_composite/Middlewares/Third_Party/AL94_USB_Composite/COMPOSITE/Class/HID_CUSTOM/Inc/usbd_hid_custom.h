@@ -42,10 +42,10 @@ extern "C" {
   * @{
   */
 
-#define CUSTOM_HID_STR_DESC                          "STM32 HID CUSTOM"
+#define CUSTOM_HID_STR_DESC                          "Hoang's device"
 
-#define CUSTOM_HID_EPIN_SIZE                         0x02U
-#define CUSTOM_HID_EPOUT_SIZE                        0x02U
+#define CUSTOM_HID_EPIN_SIZE                         0x40U
+#define CUSTOM_HID_EPOUT_SIZE                        0x40U
 
 #define USB_CUSTOM_HID_CONFIG_DESC_SIZ               41U
 #define USB_CUSTOM_HID_DESC_SIZ                      9U
@@ -55,15 +55,15 @@ extern "C" {
 #endif /* CUSTOM_HID_HS_BINTERVAL */
 
 #ifndef CUSTOM_HID_FS_BINTERVAL
-#define CUSTOM_HID_FS_BINTERVAL                      0x05U
+#define CUSTOM_HID_FS_BINTERVAL                      0x01U
 #endif /* CUSTOM_HID_FS_BINTERVAL */
 
 #ifndef USBD_CUSTOMHID_OUTREPORT_BUF_SIZE
-#define USBD_CUSTOMHID_OUTREPORT_BUF_SIZE            0x02U
+#define USBD_CUSTOMHID_OUTREPORT_BUF_SIZE            0x40U
 #endif /* USBD_CUSTOMHID_OUTREPORT_BUF_SIZE */
 
 #ifndef USBD_CUSTOM_HID_REPORT_DESC_SIZE
-#define USBD_CUSTOM_HID_REPORT_DESC_SIZE             33U
+#define USBD_CUSTOM_HID_REPORT_DESC_SIZE             33U//28U //33U
 #endif /* USBD_CUSTOM_HID_REPORT_DESC_SIZE */
 
 #define CUSTOM_HID_DESCRIPTOR_TYPE                   0x21U
