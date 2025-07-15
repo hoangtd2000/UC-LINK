@@ -10,6 +10,6 @@ namespace start_wpf1.Models
     {
             public string DataString { get; set; } = string.Empty;
             public string DataType { get; set; } = "ASCII"; // hoặc "hex", "Dec"
-        
+
     }
 }

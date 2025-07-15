@@ -20,12 +20,26 @@ namespace start_wpf1.ViewModels
         private readonly CdcService _cdcService;
         private readonly StringBuilder _receiveBuffer = new StringBuilder();
         private readonly DispatcherTimer _uiUpdateTimer;
+        private bool _isSerialOpen;
+        public bool IsSerialOpen
+        {
+            get => _isSerialOpen;
+            set
+            {
+                if (_isSerialOpen != value)
+                {
+                    _isSerialOpen = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
 
         public ObservableCollection<string> ReceiveLogs { get; } = new ObservableCollection<string>();
         public ObservableCollection<string> SendLogs { get; } = new ObservableCollection<string>();
         public ObservableCollection<string> ConnectionLogs { get; } = new ObservableCollection<string>();
         public ObservableCollection<CdcFrame> FramesToSend { get; } = new ObservableCollection<CdcFrame>();
-        private readonly StringBuilder _receiveBuilder = new StringBuilder();
+        //private readonly StringBuilder _receiveBuilder = new StringBuilder();
         public bool AppendCR { get; set; }
         public bool AppendLF { get; set; }
         public Func<bool> GetAppendCR { get; set; }
@@ -99,39 +113,15 @@ namespace start_wpf1.ViewModels
         public void OpenSerial(string port, int baud, Parity parity, int dataBits, StopBits stopBits)
         {
             _cdcService.Open(port, baud, parity, dataBits, stopBits);
+            IsSerialOpen = _cdcService.IsOpen;
         }
 
         public void CloseSerial()
         {
             _cdcService.Close();
+            IsSerialOpen = _cdcService.IsOpen;
         }
 
-        /*private void SendFrame(CdcFrame frame)
-        {
-            _cdcService.Send(frame);
-
-        }*/
-        /*private void SendFrame(CdcFrame frame)
-        {
-            string data = frame.DataString;
-
-            if (AppendCR) data += "\r";
-            if (AppendLF) data += "\n";
-
-            byte[] dataBytes;
-
-            if (frame.DataType == "ASCII")
-            {
-                dataBytes = Encoding.ASCII.GetBytes(data); // ✅ giữ nguyên CR/LF
-            }
-            else
-            {
-                dataBytes = Helpers.DataConverter.ConvertToBytes(data, frame.DataType); // Hex / Dec
-            }
-
-            _cdcService.SendBytes(dataBytes);
-        }
-        */
         private void SendFrame(CdcFrame frame)
         {
             // Lấy trạng thái từ UI
@@ -156,6 +146,7 @@ namespace start_wpf1.ViewModels
 
             _cdcService.SendBytes(dataBytes);
         }
+
         private void OnDataReceived(string data)
         {
             _receiveBuffer.Append(data); // Ghi vào bộ nhớ tạm, chưa update UI
@@ -167,96 +158,11 @@ namespace start_wpf1.ViewModels
             ReceiveLog = string.Empty;    // Xóa UI
             _cdcService.ClearBuffer();    // Clear buffer SerialPort
         }
+
         private void LogConnection(string message)
         {
             ConnectionLogs.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
         }
-        /*
-        public void SendFile(string filePath)
-        {
-            if (!File.Exists(filePath)) return;
-
-            try
-            {
-                var lines = File.ReadAllLines(filePath);
-                foreach (var line in lines)
-                {
-                    string data = line;
-                    if (GetAppendCR?.Invoke() == true) data += "\r";
-                    if (GetAppendLF?.Invoke() == true) data += "\n";
-
-                    var bytes = Encoding.ASCII.GetBytes(data);
-                    _cdcService.SendBytes(bytes);
-
-                    Thread.Sleep(10); // gửi từ từ, tránh nghẽn thiết bị
-                }
-
-                LogConnection($"[INFO] Đã gửi file: {Path.GetFileName(filePath)} ({lines.Length} dòng)");
-            }
-            catch (Exception ex)
-            {
-                LogConnection($"[ERR] Lỗi gửi file: {ex.Message}");
-            }
-        }
-        */
-        /*
-        public void SendFile(string filePath)
-        {
-            if (!File.Exists(filePath)) return;
-
-            try
-            {
-                string ext = Path.GetExtension(filePath).ToLower();
-                string fileName = Path.GetFileName(filePath);
-
-                if (ext == ".bin")
-                {
-                    byte[] binData = File.ReadAllBytes(filePath);
-                    _cdcService.SendBytes(binData);
-                    LogConnection($"[INFO] Đã gửi file BIN ({binData.Length} bytes)");
-                }
-                else
-                {
-                    var lines = File.ReadAllLines(filePath);
-                    foreach (var line in lines)
-                    {
-                        byte[] dataBytes;
-
-                        if (ext == ".hex")
-                        {
-                            // A1 B2 → [0xA1, 0xB2] + thêm \r\n
-                            dataBytes = Helpers.DataConverter.ConvertToBytes(line, "HEX")
-                                .Concat(new byte[] { 0x0D, 0x0A }) // \r\n
-                                .ToArray();
-                        }
-                        else if (ext == ".dec")
-                        {
-                            dataBytes = Helpers.DataConverter.ConvertToBytes(line, "DEC")
-                                .Concat(new byte[] { 0x0D, 0x0A })
-                                .ToArray();
-                        }
-                        else // .txt hoặc mặc định → ASCII
-                        {
-                            string data = line;
-                            if (GetAppendCR?.Invoke() == true) data += "\r";
-                            if (GetAppendLF?.Invoke() == true) data += "\n";
-
-                            dataBytes = Encoding.ASCII.GetBytes(data);
-                        }
-
-                        _cdcService.SendBytes(dataBytes);
-                        Thread.Sleep(10);
-                    }
-
-                    LogConnection($"[INFO] Đã gửi file {fileName} ({lines.Length} dòng)");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogConnection($"[ERR] Gửi file thất bại: {ex.Message}");
-            }
-        }
-        */
         public void SendFile(string filePath)
         {
             if (!File.Exists(filePath)) return;
@@ -288,20 +194,8 @@ namespace start_wpf1.ViewModels
                     foreach (var line in lines)
                     {
                         string data = line;
-
-                       /* if (ext == ".hex")
-                        {
-                            // GỬI DẠNG ASCII — giữ nguyên chuỗi như "A1 B2"
-                            if (GetAppendCR?.Invoke() == true) data += "\r";
-                            if (GetAppendLF?.Invoke() == true) data += "\n";
-
-                            byte[] asciiBytes = Encoding.ASCII.GetBytes(data);
-                            _cdcService.SendBytes(asciiBytes);
-                        }*/
                        if (ext == ".hex")
                         {
-                            // GỬI DẠNG ASCII — giữ nguyên chuỗi như "A1 B2"
-                            // nhưng luôn thêm \r\n, KHÔNG phụ thuộc vào checkbox
                             string dataWithCrLf = line + "\r\n";
                             byte[] asciiBytes = Encoding.ASCII.GetBytes(dataWithCrLf);
                             _cdcService.SendBytes(asciiBytes);

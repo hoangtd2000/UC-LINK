@@ -134,10 +134,11 @@
                                     <DataGridTemplateColumn Header="Gửi" Width="60">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <Button Content="Gửi"
-                    Command="{Binding DataContext.SendCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                    CommandParameter="{Binding}" />
-                                            </DataTemplate>
+                                                    <Button Content="Gửi"
+        Command="{Binding DataContext.SendCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+        CommandParameter="{Binding}"
+        IsEnabled="{Binding DataContext.IsSerialOpen, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
 
@@ -148,18 +149,19 @@
                         </TabItem>
                         <!-- Tab 2: Gửi file / lưu log -->
                         <TabItem Header="Gửi file / Lưu log">
-                            <GroupBox Header="Công cụ file" Margin="0">
-                                <StackPanel Margin="10">
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                        <Button Content="Gửi file" Click="btnSendFile_Click" Width="100" Margin="0,0,10,0"/>
-                                        <TextBlock x:Name="txtLastSentFile" Text="Chưa gửi file" VerticalAlignment="Center"/>
+                            
+                                <StackPanel Margin="20">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                                    <Button Content="Gửi file" Click="btnSendFile_Click"
+        IsEnabled="{Binding IsSerialOpen}" Width="100" Margin="0,0,10,0"/>
+                                    <TextBlock x:Name="txtLastSentFile" Text="Chưa gửi file" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                         <Button Content="Lưu log" Click="btnSaveLog_Click" Width="100"/>
-                                        <TextBlock Text=" (Lưu toàn bộ dữ liệu nhận được)" Margin="10,0"/>
+                                        <TextBlock Text=" Lưu toàn bộ dữ liệu nhận được" Margin="10,0"/>
                                     </StackPanel>
                                 </StackPanel>
-                            </GroupBox>
+                           
                         </TabItem>
                     </TabControl>
 

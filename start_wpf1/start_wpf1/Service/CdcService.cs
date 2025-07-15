@@ -21,10 +21,25 @@ namespace start_wpf1.Service
 
         public void ClearBuffer()
         {
-            _receiveBuffer.Clear();
-            _port.DiscardInBuffer();  // clear dữ liệu chưa đọc
-            _port.DiscardOutBuffer(); // clear dữ liệu chưa gửi
+            try
+            {
+                if (_port != null && _port.IsOpen)
+                {
+                    _port.DiscardInBuffer();
+                    _port.DiscardOutBuffer();
+                    Console.WriteLine("[CDC] Clear buffer cổng COM");
+                }
+                else
+                {
+                    Console.WriteLine("[CDC] Không thể xóa buffer: COM chưa mở");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CDC] Lỗi khi clear buffer: {ex.Message}");
+            }
         }
+
 
         public void Open(string portName, int baudRate, Parity parity, int dataBits, StopBits stopBits)
         {
@@ -43,13 +58,11 @@ namespace start_wpf1.Service
 
                 _port.DataReceived += OnDataReceived;
                 _port.Open();
-               // Thread.Sleep(50); // Cho thiết bị ổn định
-                //_port.DiscardInBuffer();
                 LogConnection($"[OPEN] {portName} @ {baudRate}bps");
             }
             catch (Exception ex)
             {
-                LogConnection($"[ERROR] Mở cổng thất bại: {ex.Message}");
+                LogConnection($"[ERROR] Opencom FAILED: {ex.Message}");
                 throw;
             }
         }
@@ -65,12 +78,12 @@ namespace start_wpf1.Service
                     if (_port.IsOpen)
                         _port.Close();
 
-                    LogConnection("[CLOSE] Cổng COM đã đóng");
+                    LogConnection("[CLOSE] Comport closed");
                 }
             }
             catch (Exception ex)
             {
-                LogConnection($"[ERROR] Đóng cổng thất bại: {ex.Message}");
+                LogConnection($"[ERROR] Close comport FAILED: {ex.Message}");
             }
         }
 
@@ -117,8 +130,6 @@ namespace start_wpf1.Service
                 }
 
                 _port.Write(data, 0, data.Length);
-
-                // 🧪 DEBUG: in ra dữ liệu byte gửi đi
                 string hex = string.Join(" ", data.Select(b => b.ToString("X2")));
                 Console.WriteLine($"[SEND] Bytes: {hex}");
 
@@ -132,7 +143,6 @@ namespace start_wpf1.Service
                 LogConnection($"[ERR] Gửi bytes thất bại: {ex.Message}");
             }
         }
-
         public void Send(CdcFrame frame)
         {
             try
@@ -142,7 +152,6 @@ namespace start_wpf1.Service
                     LogConnection("[WARN] Cổng COM chưa mở.");
                     return;
                 }
-
                 byte[] dataBytes = Helpers.DataConverter.ConvertToBytes(frame.DataString, frame.DataType);
                 _port.Write(dataBytes, 0, dataBytes.Length);
 

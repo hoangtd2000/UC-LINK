@@ -91,8 +91,7 @@ namespace start_wpf1
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
                 Filter = "Text files (*.txt)|*.txt",
-                //Filter = "Supported Files|*.txt;*.hex;*.bin;*.dec|All files|*.*",
-                FileName = $"cdc_log_{DateTime.Now:yyyyMMdd_HHmmss}.txt"
+                FileName = $"UC-LINK_cdc_log_{DateTime.Now:yyyyMMdd_HHmmss}.txt"
             };
 
             if (dialog.ShowDialog() == true)
@@ -118,13 +117,14 @@ namespace start_wpf1
             try
             {
                 _cdcViewModel.OpenSerial(port, baud, parity, databits, stopBits);
-                txtConnectionStatus.Text = $"opened {port}";
+                txtConnectionStatus.Text = $"Opened {port}";
+                txtDeviceName.Text = $"UC-Link";
                 btnOpenCom.IsEnabled = false;
                 btnCloseCom.IsEnabled = true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Lỗi mở cổng: {ex.Message}");
+                MessageBox.Show($"Open comport ERROR: {ex.Message}");
             }
         }
 
@@ -133,13 +133,13 @@ namespace start_wpf1
             try
             {
                 _cdcViewModel.CloseSerial();
-                txtConnectionStatus.Text = "Đã ngắt kết nối";
+                txtConnectionStatus.Text = "Disconect !";
                 btnOpenCom.IsEnabled = true;
                 btnCloseCom.IsEnabled = false;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Lỗi khi đóng COM: {ex.Message}");
+                MessageBox.Show($"Close comport ERROR: {ex.Message}");
             }
             _isComConnected = false;
         }
