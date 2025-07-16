@@ -135,9 +135,9 @@
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                     <Button Content="Gửi"
-        Command="{Binding DataContext.SendCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+        Command="{Binding DataContext.CdcVM.SendCommand, RelativeSource={RelativeSource AncestorType=Window}}"
         CommandParameter="{Binding}"
-        IsEnabled="{Binding DataContext.IsSerialOpen, RelativeSource={RelativeSource AncestorType=Window}}" />
+        IsEnabled="{Binding DataContext.CdcVM.IsSerialOpen, RelativeSource={RelativeSource AncestorType=Window}}" />
                                                 </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
@@ -153,7 +153,7 @@
                                 <StackPanel Margin="20">
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
                                     <Button Content="Gửi file" Click="btnSendFile_Click"
-        IsEnabled="{Binding IsSerialOpen}" Width="100" Margin="0,0,10,0"/>
+                                    IsEnabled="{Binding CdcVM.IsSerialOpen}" Width="100" Margin="0,0,10,0"/>
                                     <TextBlock x:Name="txtLastSentFile" Text="Chưa gửi file" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
@@ -172,7 +172,7 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <TextBox x:Name="txtReceiveCdcData"
-         Text="{Binding ReceiveLog, UpdateSourceTrigger=PropertyChanged}"
+         Text="{Binding CdcVM.ReceiveLog, UpdateSourceTrigger=PropertyChanged}"
          IsReadOnly="True"
          AcceptsReturn="True"
          VerticalScrollBarVisibility="Auto"
@@ -191,7 +191,7 @@
             </TabItem>
 
             <TabItem Header="USB HID qua CAN Protocol">
-                <Grid Margin="10">
+                <Grid Margin="10"  DataContext="{Binding CanVM}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
@@ -204,22 +204,27 @@
                     <GroupBox Header="Cấu hình CAN Protocol" Grid.Row="0" Grid.Column="0" Margin="0,0,10,10"
                               HorizontalAlignment="Stretch" VerticalAlignment="Top">
                         <StackPanel Margin="5">
+                            <TextBlock Text="{Binding IsConnected, StringFormat=Trạng thái kết nối: {0}}" Foreground="Green"/>
                             <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
                                 <Label Content="Baud Rate:"/>
                                 <ComboBox x:Name="cmbCanBaudRate" Width="100">
-                                    <ComboBoxItem Content="125K" IsSelected="True"/>
-                                    <ComboBoxItem Content="500K"/>
+                                    <ComboBoxItem Content="125" />
+                                    <ComboBoxItem Content="500" IsSelected="True"/>
                                 </ComboBox>
+                               
                                 <!--<Button x:Name="btnConnectCan" Content="Kết nối CAN" Margin="10,0,0,0"/> -->
-                                <Button x:Name="btnConnectCan"
-        Content="Kết nối CAN"
+                                <Button Content="Kết nối CAN"
         Command="{Binding ConnectCanCommand}"
-        Margin="10,0,0,0" Click="BtnConnectCan_Click"/>
-                                <Button x:Name="btnDisconnectCan" Content="Ngắt kết nối CAN" Margin="5,0,0,0" IsEnabled="False"/>
+        Margin="10,0,0,0"/>
+
+                                <Button Content="Ngắt kết nối CAN"
+        Command="{Binding DisconnectCanCommand}"
+        Margin="5,0,0,0"
+        IsEnabled="{Binding IsConnected}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                                <Label Content="CAN ID Filter (Hex, cách nhau bằng dấu phẩy):"/>
-                                <TextBox x:Name="txtCanIdFilter" Width="200" Text="0x123, 0x456"/>
+                               <!-- <Label Content="CAN ID Filter (Hex, cách nhau bằng dấu phẩy):"/>
+                                <TextBox x:Name="txtCanIdFilter" Width="200" Text="0x123, 0x456"/> -->
                             </StackPanel>
                             <Button x:Name="btnApplyCanConfig" Content="Áp dụng cấu hình CAN" Margin="0,10,0,0"/>
                         </StackPanel>
@@ -232,14 +237,20 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <DataGrid x:Name="dgCanSend" ItemsSource="{Binding CanFrames}" Grid.Row="0" AutoGenerateColumns="False" CanUserAddRows="True" CanUserDeleteRows="True"
-                                      HeadersVisibility="Column" SelectionMode="Single">
+                            <DataGrid x:Name="dgCanSend"
+          ItemsSource="{Binding CanFrames}"
+          AutoGenerateColumns="False"
+          CanUserAddRows="True"
+          CanUserDeleteRows="True">
+
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId, UpdateSourceTrigger=PropertyChanged}" Width="65"/>
-                                    <DataGridTemplateColumn Header="DLC" Width="45">
+                                    <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId}" Width="80"/>
+
+                                    <!-- DLC chọn từ 0–8 -->
+                                   <DataGridTemplateColumn Header="DLC" Width="60">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <ComboBox SelectedItem="{Binding Dlc, Mode=TwoWay}">
+                                                <ComboBox SelectedItem="{Binding Dlc, Mode=TwoWay}" Width="50">
                                                     <ComboBoxItem Content="0"/>
                                                     <ComboBoxItem Content="1"/>
                                                     <ComboBoxItem Content="2"/>
@@ -252,48 +263,62 @@
                                                 </ComboBox>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
-                                        <DataGridTemplateColumn.CellEditingTemplate>
-                                            <DataTemplate>
-                                                <ComboBox SelectedItem="{Binding Dlc, Mode=TwoWay}">
-                                                    <ComboBoxItem Content="0"/>
-                                                    <ComboBoxItem Content="1"/>
-                                                    <ComboBoxItem Content="2"/>
-                                                    <ComboBoxItem Content="3"/>
-                                                    <ComboBoxItem Content="4"/>
-                                                    <ComboBoxItem Content="5"/>
-                                                    <ComboBoxItem Content="6"/>
-                                                    <ComboBoxItem Content="7"/>
-                                                    <ComboBoxItem Content="8"/>
-                                                </ComboBox>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTextColumn Header="Data (Hex)" Binding="{Binding DataHex, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
-                                    <DataGridCheckBoxColumn Header="Cycle" Binding="{Binding IsCyclic}" Width="50"/>
-                                    <DataGridTextColumn Header="Time (ms)" Binding="{Binding CycleTimeMs, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
-                                    <DataGridCheckBoxColumn Header="Event" Binding="{Binding IsEventTriggered}" Width="50"/>
+                                    
+                                    <!-- Hiển thị từng byte nhập -->
+                                    <DataGridTemplateColumn Header="Data" Width="*">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <ItemsControl ItemsSource="{Binding VisibleDataBytes}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Orientation="Horizontal"/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Width="30" Margin="1"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridCheckBoxColumn Header="Cycle" Binding="{Binding IsCyclic}" Width="60"/>
+                                    <DataGridTextColumn Header="Time (ms)" Binding="{Binding CycleTimeMs}" Width="80"/>
+                                    <DataGridCheckBoxColumn Header="Event" Binding="{Binding IsEventTriggered}" Width="60"/>
+
+                                    <!-- Gửi -->
                                     <DataGridTemplateColumn Header="Gửi" Width="60">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <Button Content="Gửi" Click="btnSendCanFrame_Click" Tag="{Binding}"/>
+                                                <Button Content="Gửi"
+                            Command="{Binding DataContext.SendCanFrameCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                            CommandParameter="{Binding}"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
+
                         </Grid>
                     </GroupBox>
-
+            
                     <GroupBox Header="Nhận CAN Frames" Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" Margin="10,0,0,0">
+                        
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <DataGrid x:Name="dgCanReceive"  ItemsSource="{Binding ReceivedFrames}" Grid.Row="0" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column">
+                            <DataGrid x:Name="dgCanReceive"
+          ItemsSource="{Binding ReceivedFrames}"
+          AutoGenerateColumns="False"
+          IsReadOnly="True">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" Width="80"/>
+                                    <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" Width="100"/>
                                     <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId}" Width="70"/>
                                     <DataGridTextColumn Header="DLC" Binding="{Binding Dlc}" Width="40"/>
                                     <DataGridTextColumn Header="Data" Binding="{Binding DataHex}" Width="*"/>
@@ -301,11 +326,12 @@
                             </DataGrid>
 
                             <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Right" Margin="0,5,0,0">
-          
+                            
                                 <Button x:Name="btnClearCanReceive" Content="Xóa" Margin="0,0,0,0" Click="btnClearCanReceive_Click"/>
                             </StackPanel>
                         </Grid>
                     </GroupBox>
+                    
                 </Grid>
             </TabItem>
         </TabControl>

@@ -62,6 +62,7 @@
     <Compile Include="Helpers\HexHelper.cs" />
     <Compile Include="Helpers\Logger.cs" />
     <Compile Include="Helpers\RelayCommand.cs" />
+    <Compile Include="Models\BindableByte.cs" />
     <Compile Include="Models\CdcFrame.cs" />
     <Compile Include="Service\CanService.cs" />
     <Compile Include="Service\CdcService.cs" />

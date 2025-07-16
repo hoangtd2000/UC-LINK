@@ -15,13 +15,18 @@ namespace start_wpf1
     /// </summary>
     public partial class MainWindow : Window
     {
-        private readonly CdcViewModel _cdcViewModel;
+        //private readonly CdcViewModel _cdcViewModel;
+        private readonly MainViewModel _mainViewModel;
+
+
         private DispatcherTimer _comScanTimer;
         private string[] _lastPortNames = Array.Empty<string>();
         private bool _isComConnected = false;
+
+
         public MainWindow()
         {
-            InitializeComponent();
+            /*InitializeComponent();
             _lastPortNames = SerialPort.GetPortNames();
             SetupAutoComScan(); // gọi hàm khởi động quét COM tự động
             var cdcService = new CdcService();
@@ -29,7 +34,7 @@ namespace start_wpf1
             DataContext = _cdcViewModel;
             _cdcViewModel.GetAppendCR = () => chkCR.IsChecked == true;
             _cdcViewModel.GetAppendLF = () => chkLF.IsChecked == true;
-
+            
             cmbDisplayMode.SelectionChanged += (s, e) =>
             {
                 var selected = ((ComboBoxItem)cmbDisplayMode.SelectedItem).Content.ToString();
@@ -41,7 +46,35 @@ namespace start_wpf1
             };
             LoadComPorts();
             dgCdcSend.ItemsSource = _cdcViewModel.FramesToSend;
+            */
+            InitializeComponent();
 
+            // Tạo MainViewModel
+            _mainViewModel = new MainViewModel();
+            this.DataContext = _mainViewModel; // GÁN duy nhất 1 DataContext
+
+            // CdcViewModel logic
+            _mainViewModel.CdcVM.GetAppendCR = () => chkCR.IsChecked == true;
+            _mainViewModel.CdcVM.GetAppendLF = () => chkLF.IsChecked == true;
+
+            _lastPortNames = SerialPort.GetPortNames();
+            SetupAutoComScan();
+
+            cmbDisplayMode.SelectionChanged += (s, e) =>
+            {
+                var selected = ((ComboBoxItem)cmbDisplayMode.SelectedItem).Content.ToString();
+                _mainViewModel.CdcVM.SelectedDisplayMode = selected;
+            };
+
+            _mainViewModel.CdcVM.AutoScrollRequest += () =>
+            {
+                txtReceiveCdcData.ScrollToEnd();
+            };
+
+            LoadComPorts();
+
+            // DataGrid Cdc
+            dgCdcSend.ItemsSource = _mainViewModel.CdcVM.FramesToSend;
         }
         private void SetupAutoComScan()
         {
@@ -69,8 +102,8 @@ namespace start_wpf1
 
         private void btnSendCdcData_Click(object sender, RoutedEventArgs e)
         {
-            _cdcViewModel.AppendCR = chkCR.IsChecked == true;
-            _cdcViewModel.AppendLF = chkLF.IsChecked == true;
+            _mainViewModel.CdcVM.AppendCR = chkCR.IsChecked == true;
+            _mainViewModel.CdcVM.AppendLF = chkLF.IsChecked == true;
         }
         private void btnSendFile_Click(object sender, RoutedEventArgs e)
         {
@@ -81,7 +114,7 @@ namespace start_wpf1
 
             if (dialog.ShowDialog() == true)
             {
-                _cdcViewModel.SendFile(dialog.FileName);
+                _mainViewModel.CdcVM.SendFile(dialog.FileName);
                 txtLastSentFile.Text = $"Đã gửi: {System.IO.Path.GetFileName(dialog.FileName)}";
             }
         }
@@ -95,16 +128,12 @@ namespace start_wpf1
 
             if (dialog.ShowDialog() == true)
             {
-                _cdcViewModel.SaveLogToFile(dialog.FileName);
+                _mainViewModel.CdcVM.SaveLogToFile(dialog.FileName);
             }
         }
 
         private void btnClearCanReceive_Click(object sender, RoutedEventArgs e)
         {
-            if (DataContext is CanViewModel vm)
-            {
-                vm.ReceivedFrames.Clear();
-            }
         }
 
         private void BtnOpenCom_Click(object sender, RoutedEventArgs e)
@@ -118,7 +147,7 @@ namespace start_wpf1
 
             try
             {
-                _cdcViewModel.OpenSerial(port, baud, parity, databits, stopBits);
+                _mainViewModel.CdcVM.OpenSerial(port, baud, parity, databits, stopBits);
                 txtConnectionStatus.Text = $"Opened {port}";
                 txtDeviceName.Text = $"UC-Link";
                 btnOpenCom.IsEnabled = false;
@@ -134,7 +163,7 @@ namespace start_wpf1
         {
             try
             {
-                _cdcViewModel.CloseSerial();
+                _mainViewModel.CdcVM.CloseSerial();
                 txtConnectionStatus.Text = "Disconect !";
                 btnOpenCom.IsEnabled = true;
                 btnCloseCom.IsEnabled = false;
@@ -148,7 +177,7 @@ namespace start_wpf1
 
         private void btnClearCdcReceive_Click(object sender, RoutedEventArgs e)
         {
-            _cdcViewModel.ClearReceive(); // gọi đúng cách
+            _mainViewModel.CdcVM.ClearReceive(); // gọi đúng cách
         }
 
 
@@ -224,16 +253,9 @@ namespace start_wpf1
             }
         }
 
- 
         private void btnSendCanFrame_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button btn && btn.Tag is CanFrame frame)
-            {
-                if (DataContext is CanViewModel vm)
-                {
-                    vm.SendCanFrame(frame);
-                }
-            }
+
         }
 
     }

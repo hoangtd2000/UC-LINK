@@ -1,113 +1,102 @@
 ﻿using HidSharp;
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace start_wpf1.Service
 {
-    public class HidCanService
+    public class HidCanService : IDisposable
     {
+        private const int VendorId = 0x0078;
+        private const int ProductId = 0x2000;
+        private const int PacketSize = 64;
+
         private HidDevice _device;
         private HidStream _stream;
         private CancellationTokenSource _cts;
 
-        public event Action<byte[]> DataReceived;
+        public bool IsConnected => _stream != null && _stream.CanWrite;
 
-        public bool IsConnected => _stream != null && _stream.CanRead;
+        public event Action<byte[]> FrameReceived;
 
         public bool Connect()
         {
-            try
-            {
-                var list = DeviceList.Local;
-                // Gắn cố định VID/PID ở đây
-                _device = list.GetHidDevices(0x0078, 0x2000).FirstOrDefault();
+            var list = DeviceList.Local;
+            _device = list.GetHidDevices(VendorId, ProductId).FirstOrDefault();
 
-                if (_device == null)
-                {
-                    Console.WriteLine("❌ Không tìm thấy thiết bị HID.");
-                    return false;
-                }
-
-                if (_device.TryOpen(out _stream))
-                {
-                    _cts = new CancellationTokenSource();
-                    Task.Run(() => ReadLoop(_cts.Token));
-                    Console.WriteLine("✅ Đã mở HID stream.");
-                    return true;
-                }
-
+            if (_device == null)
                 return false;
-            }
-            catch (Exception ex)
+
+            if (_device.TryOpen(out _stream))
             {
-                Console.WriteLine($"[ERR] Kết nối HID lỗi: {ex.Message}");
-                return false;
+                _cts = new CancellationTokenSource();
+                StartListening(_cts.Token);
+                return true;
             }
+
+            return false;
         }
 
         public void Disconnect()
         {
+            _cts?.Cancel();
+            _stream?.Close();
+            _stream?.Dispose();
+            _stream = null;
+        }
+
+        public bool SendFrame(byte[] data)
+        {
+            if (!IsConnected || data == null) return false;
+
+            var packet = new byte[PacketSize];
+            Array.Copy(data, packet, Math.Min(data.Length, PacketSize));
+
             try
             {
-                _cts?.Cancel();
-                _stream?.Close();
-                _stream = null;
-                Console.WriteLine("Đã ngắt kết nối thiết bị HID.");
+                _stream.Write(packet);
+                return true;
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"Lỗi khi ngắt kết nối: {ex.Message}");
+                return false;
             }
         }
 
-        private async Task ReadLoop(CancellationToken token)
+        private void StartListening(CancellationToken token)
         {
-            byte[] buffer = new byte[64];
-
-            while (!token.IsCancellationRequested)
+            Task.Run(() =>
             {
-                try
+                var buffer = new byte[PacketSize];
+                while (!token.IsCancellationRequested)
                 {
-                    int count = await _stream.ReadAsync(buffer, 0, buffer.Length, token);
-                    if (count > 0)
+                    try
                     {
-                        byte[] data = buffer.Take(count).ToArray();
-
-                        Console.WriteLine("[RX] " + BitConverter.ToString(data)); // kiểm tra log console
-
-                        DataReceived?.Invoke(data); // 🔥 GỌI VỀ ViewModel
+                        int bytesRead = _stream.Read(buffer, 0, PacketSize);
+                        if (bytesRead > 0)
+                        {
+                            byte[] received = new byte[bytesRead];
+                            Array.Copy(buffer, received, bytesRead);
+                            FrameReceived?.Invoke(received);
+                        }
+                    }
+                    catch (IOException)
+                    {
+                        break;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
                     }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Lỗi đọc HID: {ex.Message}");
-                    break;
-                }
-            }
+            }, token);
         }
 
-
-        public void Send(byte[] report)
+        public void Dispose()
         {
-            try
-            {
-                if (_stream != null && _stream.CanWrite)
-                {
-                    if (report.Length < 64)
-                    {
-                        Array.Resize(ref report, 64); // đảm bảo đủ report size
-                    }
-
-                    _stream.Write(report, 0, report.Length);
-                    Console.WriteLine("[TX] " + BitConverter.ToString(report));
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Lỗi khi gửi HID: {ex.Message}");
-            }
+            Disconnect();
         }
     }
 }
