@@ -30,11 +30,13 @@
 /* USER CODE BEGIN Includes */
 #include "usb_device.h"
 #include "usbd_hid_custom.h"
+#include "usbd_hid_custom_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 extern USBD_HandleTypeDef hUsbDevice;
+extern CAN_HandleTypeDef hcan1;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -50,19 +52,36 @@ extern USBD_HandleTypeDef hUsbDevice;
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+uint8_t test_process1[64] = {0x01,0x02,0x03,0x04,0x05,0x06, 0x07, 0x08, 0x09, 0x10,};
+uint8_t test_process2[64] = {0x10, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01,};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+void Process_HID_Frames(void);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t hoang[64] = {0x11, 0x22, 0x33, 0x44,};
-volatile uint8_t tx_ok = 0 ;
+void Process_HID_Frames(void) {
+    uint8_t frame[HID_FRAME_SIZE];
+
+    while (HID_Frame_Read(frame)) {
+        // Xử lý từng frame ở đây
+        // Ví dụ:
+        if (frame[0] == 1) {
+        	test_process1[4] +=1;
+        	USBD_CUSTOM_HID_SendReport(&hUsbDevice, test_process1, sizeof(test_process1));
+        }
+        else if(frame[5] == 85){
+        	test_process2[4] +=1;
+        	USBD_CUSTOM_HID_SendReport(&hUsbDevice, test_process2, sizeof(test_process2));
+        }
+
+    }
+}
 /* USER CODE END 0 */
 
 /**
@@ -102,8 +121,6 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-//  HAL_TIM_Base_Start_IT(&htim1);
-//  HAL_TIM_Base_Start_IT(&htim2);
   MX_USB_DEVICE_Init();
 
   /* USER CODE END 2 */
@@ -115,12 +132,13 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if((hUsbDevice.dev_state == USBD_STATE_CONFIGURED) ){//&& (tx_ok == 1)){
-		 // tx_ok =0;
-		  hoang[3]+=1;
-		  USBD_CUSTOM_HID_SendReport(&hUsbDevice, hoang, sizeof(hoang));
-	  }
-	  HAL_Delay(500);
+	  Process_HID_Frames();
+//	  if((hUsbDevice.dev_state == USBD_STATE_CONFIGURED) && tx_ok){
+//		  hoang[3]+=1;
+//		  tx_ok = 0;  // Chặn gửi tiếp cho đến khi callback báo xong
+//		  USBD_CUSTOM_HID_SendReport(&hUsbDevice, hoang, sizeof(hoang));
+//	  }
+//	  HAL_Delay(500);
 
   }
   /* USER CODE END 3 */

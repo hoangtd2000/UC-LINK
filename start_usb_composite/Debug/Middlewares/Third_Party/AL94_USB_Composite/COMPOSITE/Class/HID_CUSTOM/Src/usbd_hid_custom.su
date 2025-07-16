@@ -7,8 +7,8 @@
 ../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.c:641:17:USBD_CUSTOM_HID_GetOtherSpeedCfgDesc	16	static
 ../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.c:656:16:USBD_CUSTOM_HID_DataIn	16	static
 ../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.c:674:16:USBD_CUSTOM_HID_DataOut	24	static
-../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.c:699:9:USBD_CUSTOM_HID_ReceivePacket	24	static
-../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.c:723:16:USBD_CUSTOM_HID_EP0_RxReady	24	static
-../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.c:747:17:USBD_CUSTOM_HID_GetDeviceQualifierDesc	16	static
-../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.c:760:9:USBD_CUSTOM_HID_RegisterInterface	16	static
-../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.c:773:6:USBD_Update_HID_Custom_DESC	16	static
+../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.c:701:9:USBD_CUSTOM_HID_ReceivePacket	24	static
+../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.c:725:16:USBD_CUSTOM_HID_EP0_RxReady	24	static
+../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.c:750:17:USBD_CUSTOM_HID_GetDeviceQualifierDesc	16	static
+../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.c:763:9:USBD_CUSTOM_HID_RegisterInterface	16	static
+../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.c:776:6:USBD_Update_HID_Custom_DESC	16	static

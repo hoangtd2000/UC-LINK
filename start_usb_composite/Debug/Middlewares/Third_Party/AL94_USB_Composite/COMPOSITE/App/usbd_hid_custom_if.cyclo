@@ -1,3 +1,5 @@
-../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_hid_custom_if.c:208:15:CUSTOM_HID_Init	1
-../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_hid_custom_if.c:219:15:CUSTOM_HID_DeInit	1
-../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_hid_custom_if.c:232:15:CUSTOM_HID_OutEvent	1
+../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_hid_custom_if.c:218:15:CUSTOM_HID_Init	1
+../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_hid_custom_if.c:229:15:CUSTOM_HID_DeInit	1
+../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_hid_custom_if.c:242:15:CUSTOM_HID_OutEvent	1
+../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_hid_custom_if.c:254:6:HID_Frame_Write	3
+../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_hid_custom_if.c:265:5:HID_Frame_Read	2

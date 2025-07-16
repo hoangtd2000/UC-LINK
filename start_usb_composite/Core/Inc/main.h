@@ -53,7 +53,7 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+int HID_Frame_Read(uint8_t *dest_buf);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
