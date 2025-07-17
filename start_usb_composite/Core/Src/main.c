@@ -52,8 +52,8 @@ extern CAN_HandleTypeDef hcan1;
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint8_t test_process1[64] = {0x01,0x02,0x03,0x04,0x05,0x06, 0x07, 0x08, 0x09, 0x10,};
-uint8_t test_process2[64] = {0x10, 0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01,};
+uint8_t test_process1[64] = {0x03, 0x80, 0x00, 0x00, 0x03, 0x21, 0x11, 0x22, 0x33, 0x44,0x55, 0x66, 0x77, 0x88,};
+uint8_t test_process2[64] = {0x03, 0x80, 0x00, 0x00, 0x01, 0x23, 0x78, 0x20, 0x78, 0x21,0x78, 0x20, 0x78, 0x21,};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -71,12 +71,14 @@ void Process_HID_Frames(void) {
     while (HID_Frame_Read(frame)) {
         // Xử lý từng frame ở đây
         // Ví dụ:
-        if (frame[0] == 1) {
-        	test_process1[4] +=1;
+        if (frame[0] == 2) {
+        	test_process1[6] +=2;
+        	test_process1[7] +=1;
         	USBD_CUSTOM_HID_SendReport(&hUsbDevice, test_process1, sizeof(test_process1));
         }
         else if(frame[5] == 85){
-        	test_process2[4] +=1;
+        	test_process2[6] +=1;
+        	test_process2[7] +=2;
         	USBD_CUSTOM_HID_SendReport(&hUsbDevice, test_process2, sizeof(test_process2));
         }
 

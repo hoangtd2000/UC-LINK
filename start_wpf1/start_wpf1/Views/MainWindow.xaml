@@ -205,6 +205,7 @@
                               HorizontalAlignment="Stretch" VerticalAlignment="Top">
                         <StackPanel Margin="5">
                             <TextBlock Text="{Binding IsConnected, StringFormat=Trạng thái kết nối: {0}}" Foreground="Green"/>
+
                             <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
                                 <Label Content="Baud Rate:"/>
                                 <ComboBox x:Name="cmbCanBaudRate" Width="100">
@@ -215,7 +216,8 @@
                                 <!--<Button x:Name="btnConnectCan" Content="Kết nối CAN" Margin="10,0,0,0"/> -->
                                 <Button Content="Kết nối CAN"
         Command="{Binding ConnectCanCommand}"
-        Margin="10,0,0,0"/>
+        Margin="10,0,0,0" />
+
 
                                 <Button Content="Ngắt kết nối CAN"
         Command="{Binding DisconnectCanCommand}"
@@ -237,34 +239,21 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <DataGrid x:Name="dgCanSend"
-          ItemsSource="{Binding CanFrames}"
-          AutoGenerateColumns="False"
-          CanUserAddRows="True"
-          CanUserDeleteRows="True">
+                            <DataGrid x:Name="dgCanSend" ItemsSource="{Binding CanFrames}" AutoGenerateColumns="False" CanUserAddRows="True" CanUserDeleteRows="True">
 
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId}" Width="80"/>
-
-                                    <!-- DLC chọn từ 0–8 -->
-                                   <DataGridTemplateColumn Header="DLC" Width="60">
+                                    <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
+                                    <DataGridTemplateColumn Header="DLC" Width="60">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <ComboBox SelectedItem="{Binding Dlc, Mode=TwoWay}" Width="50">
-                                                    <ComboBoxItem Content="0"/>
-                                                    <ComboBoxItem Content="1"/>
-                                                    <ComboBoxItem Content="2"/>
-                                                    <ComboBoxItem Content="3"/>
-                                                    <ComboBoxItem Content="4"/>
-                                                    <ComboBoxItem Content="5"/>
-                                                    <ComboBoxItem Content="6"/>
-                                                    <ComboBoxItem Content="7"/>
-                                                    <ComboBoxItem Content="8"/>
-                                                </ComboBox>
+                                                <ComboBox
+                                                            ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.CanVM.DlcOptions}"
+                                                            SelectedItem="{Binding Dlc, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                            Width="50"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                    
+
                                     <!-- Hiển thị từng byte nhập -->
                                     <DataGridTemplateColumn Header="Data" Width="*">
                                         <DataGridTemplateColumn.CellTemplate>

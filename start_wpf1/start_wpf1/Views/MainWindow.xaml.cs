@@ -15,7 +15,6 @@ namespace start_wpf1
     /// </summary>
     public partial class MainWindow : Window
     {
-        //private readonly CdcViewModel _cdcViewModel;
         private readonly MainViewModel _mainViewModel;
 
 
@@ -26,33 +25,19 @@ namespace start_wpf1
 
         public MainWindow()
         {
-            /*InitializeComponent();
-            _lastPortNames = SerialPort.GetPortNames();
-            SetupAutoComScan(); // gọi hàm khởi động quét COM tự động
-            var cdcService = new CdcService();
-            _cdcViewModel = new CdcViewModel(cdcService);
-            DataContext = _cdcViewModel;
-            _cdcViewModel.GetAppendCR = () => chkCR.IsChecked == true;
-            _cdcViewModel.GetAppendLF = () => chkLF.IsChecked == true;
-            
-            cmbDisplayMode.SelectionChanged += (s, e) =>
-            {
-                var selected = ((ComboBoxItem)cmbDisplayMode.SelectedItem).Content.ToString();
-                _cdcViewModel.SelectedDisplayMode = selected;
-            };
-            _cdcViewModel.AutoScrollRequest += () =>
-            {
-                txtReceiveCdcData.ScrollToEnd(); 
-            };
-            LoadComPorts();
-            dgCdcSend.ItemsSource = _cdcViewModel.FramesToSend;
-            */
             InitializeComponent();
 
             // Tạo MainViewModel
             _mainViewModel = new MainViewModel();
             this.DataContext = _mainViewModel; // GÁN duy nhất 1 DataContext
-
+                                               // Gắn auto scroll cho CAN
+            _mainViewModel.CanVM.ScrollToLatestFrame = () =>
+            {
+                if (dgCanReceive.Items.Count > 0)
+                {
+                    dgCanReceive.ScrollIntoView(dgCanReceive.Items[dgCanReceive.Items.Count - 1]);
+                }
+            };
             // CdcViewModel logic
             _mainViewModel.CdcVM.GetAppendCR = () => chkCR.IsChecked == true;
             _mainViewModel.CdcVM.GetAppendLF = () => chkLF.IsChecked == true;
@@ -134,6 +119,7 @@ namespace start_wpf1
 
         private void btnClearCanReceive_Click(object sender, RoutedEventArgs e)
         {
+            _mainViewModel.CanVM.ReceivedFrames.Clear();
         }
 
         private void BtnOpenCom_Click(object sender, RoutedEventArgs e)

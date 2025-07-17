@@ -51,12 +51,14 @@ namespace start_wpf1.Service
         {
             if (!IsConnected || data == null) return false;
 
-            var packet = new byte[PacketSize];
-            Array.Copy(data, packet, Math.Min(data.Length, PacketSize));
+            var packet = new byte[PacketSize + 1]; // 1 byte cho Report ID
+            //packet[0] = 0x02; // Report ID, hoặc để = 0 nếu không sử dụng
+
+            Array.Copy(data, 0, packet, 1, Math.Min(data.Length, PacketSize));
 
             try
             {
-                _stream.Write(packet);
+                _stream.Write(packet, 0, packet.Length);
                 return true;
             }
             catch
@@ -65,21 +67,25 @@ namespace start_wpf1.Service
             }
         }
 
+        /*
         private void StartListening(CancellationToken token)
         {
             Task.Run(() =>
             {
-                var buffer = new byte[PacketSize];
+                var buffer = new byte[PacketSize]; // +1 cho Report ID
                 while (!token.IsCancellationRequested)
                 {
                     try
                     {
-                        int bytesRead = _stream.Read(buffer, 0, PacketSize);
-                        if (bytesRead > 0)
+                        int bytesRead = _stream.Read(buffer, 0, buffer.Length);
+                        if (bytesRead > 1) // ít nhất có ReportID + 1 byte data
                         {
-                            byte[] received = new byte[bytesRead];
-                            Array.Copy(buffer, received, bytesRead);
+                            // Bỏ qua byte đầu (report ID), chỉ lấy phần payload
+                            byte[] received = new byte[bytesRead - 1];
+                            Array.Copy(buffer, 1, received, 0, received.Length);
+
                             FrameReceived?.Invoke(received);
+                            System.Diagnostics.Debug.WriteLine("✅ Raised FrameReceived event");
                         }
                     }
                     catch (IOException)
@@ -93,6 +99,53 @@ namespace start_wpf1.Service
                 }
             }, token);
         }
+        */
+        private void StartListening(CancellationToken token)
+        {
+            Task.Run(async () =>
+            {
+                var buffer = new byte[PacketSize + 1];
+
+                while (!token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        int bytesRead = await _stream.ReadAsync(buffer, 0, PacketSize, token);
+
+                        if (bytesRead > 0)
+                        {
+                            // Skip the first byte (Report ID)
+                            byte[] received = new byte[bytesRead - 1];
+                            Array.Copy(buffer, 1, received, 0, bytesRead - 1);
+
+                            FrameReceived?.Invoke(received);
+                            Console.WriteLine($"✅ FrameReceived invoked, CMD: {received[0]:X2}");
+                        }
+                        else
+                        {
+                            // Không đọc được gì, có thể thiết bị ngắt kết nối
+                            System.Diagnostics.Debug.WriteLine("⚠️ No data received, possible disconnect.");
+                        }
+                    }
+                    catch (IOException ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ IO Exception: {ex.Message}");
+                        break;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❗ Unexpected error: {ex.Message}");
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine("🛑 Stopped listening");
+            }, token);
+        }
+
 
         public void Dispose()
         {
