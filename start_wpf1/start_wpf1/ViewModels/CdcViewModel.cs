@@ -33,7 +33,8 @@ namespace start_wpf1.ViewModels
                 }
             }
         }
-        public ObservableCollection<string> ReceiveLogs { get; } = new ObservableCollection<string>();
+        //public ObservableCollection<string> ReceiveLogs { get; } = new ObservableCollection<string>();
+
         public ObservableCollection<string> SendLogs { get; } = new ObservableCollection<string>();
         public ObservableCollection<string> ConnectionLogs { get; } = new ObservableCollection<string>();
         public ObservableCollection<CdcFrame> FramesToSend { get; } = new ObservableCollection<CdcFrame>();
@@ -48,8 +49,10 @@ namespace start_wpf1.ViewModels
             get => _receiveLog;
             set
             {
+                
                 _receiveLog = value;
                 OnPropertyChanged();
+               
             }
         }
         private string _selectedDisplayMode = "ASCII";
@@ -102,6 +105,7 @@ namespace start_wpf1.ViewModels
 
                     ReceiveLog += converted;
                     AutoScrollRequest?.Invoke();
+                   // Console.WriteLine($"[DEBUG-RECEIVE] Processed: {converted.Length} chars");
                 }
             };
             _uiUpdateTimer.Start();
@@ -215,7 +219,7 @@ namespace start_wpf1.ViewModels
                             _cdcService.SendBytes(asciiBytes);
                         }
 
-                        Thread.Sleep(10);
+                        //Thread.Sleep(1);
                     }
 
                     LogConnection($"[INFO] Đã gửi file {fileName} ({lines.Length} dòng)");

@@ -53,8 +53,11 @@ namespace start_wpf1
 
             _mainViewModel.CdcVM.AutoScrollRequest += () =>
             {
-                txtReceiveCdcData.ScrollToEnd();
+               txtReceiveCdcData.ScrollToEnd();
+
             };
+            
+
 
             LoadComPorts();
 

@@ -171,14 +171,15 @@
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
+                            
                             <TextBox x:Name="txtReceiveCdcData"
-         Text="{Binding CdcVM.ReceiveLog, UpdateSourceTrigger=PropertyChanged}"
-         IsReadOnly="True"
-         AcceptsReturn="True"
-         VerticalScrollBarVisibility="Auto"
-         FontFamily="Consolas"
-         FontSize="14"
-         TextWrapping="Wrap"/>
+                            Text="{Binding CdcVM.ReceiveLog, UpdateSourceTrigger=PropertyChanged}"
+                            IsReadOnly="True"
+                            AcceptsReturn="True"
+                            VerticalScrollBarVisibility="Auto"
+                            FontFamily="Consolas"
+                            FontSize="14"
+                            TextWrapping="Wrap"/>
 
 
                             <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Right" Margin="0,5,0,0">

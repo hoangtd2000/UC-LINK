@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading;
 using start_wpf1.Models;
 using System.Linq;
+using System.Windows.Threading;
 
 namespace start_wpf1.Service
 {
@@ -17,6 +18,11 @@ namespace start_wpf1.Service
         public event Action<string> SentData;
         public event Action<string> ConnectionLog;
 
+        private readonly StringBuilder _dataBuffer = new StringBuilder();
+        private Timer _flushTimer;
+        private readonly object _bufferLock = new object();
+
+
         public bool IsOpen => _port?.IsOpen ?? false;
 
         public void ClearBuffer()
@@ -27,6 +33,7 @@ namespace start_wpf1.Service
                 {
                     _port.DiscardInBuffer();
                     _port.DiscardOutBuffer();
+
                     Console.WriteLine("[CDC] Clear buffer cổng COM");
                 }
                 else
@@ -58,7 +65,9 @@ namespace start_wpf1.Service
 
                 _port.DataReceived += OnDataReceived;
                 _port.Open();
+                _flushTimer = new Timer(FlushDataToUI, null, 0, 100); // mỗi 100ms đẩy dữ liệu
                 LogConnection($"[OPEN] {portName} @ {baudRate}bps");
+
             }
             catch (Exception ex)
             {
@@ -74,7 +83,10 @@ namespace start_wpf1.Service
                 if (_port != null)
                 {
                     _port.DataReceived -= OnDataReceived;
-
+                    //thêm 
+                    _flushTimer?.Dispose();
+                    _flushTimer = null;
+                    FlushReceiveBufferOnThreadPool(null);
                     if (_port.IsOpen)
                         _port.Close();
 
@@ -100,16 +112,68 @@ namespace start_wpf1.Service
                 if (bytesRead > 0)
                 {
                     string data = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                    DispatchData(data); // Gửi lên ViewModel xử lý
+
+                    // ✅ Thêm vào buffer (dùng lock vì Timer có thể đọc cùng lúc)
+                    lock (_bufferLock)
+                    {
+                        _dataBuffer.Append(data);
+
+                        // Giới hạn buffer nếu quá lớn
+                        if (_dataBuffer.Length > 16384)
+                        {
+                            _dataBuffer.Clear(); // hoặc .Remove(0, N)
+                        }
+                    }
                 }
             }
             catch (Exception ex)
             {
-                DispatchData($"[ERR] {ex.Message}");
+                lock (_bufferLock)
+                {
+                    _dataBuffer.Append($"[ERR] {ex.Message}\r\n");
+                }
+            }
+        }
+        private void FlushDataToUI(object state)
+        {
+            string dataToSend = null;
+
+            lock (_bufferLock)
+            {
+                if (_dataBuffer.Length > 0)
+                {
+                    dataToSend = _dataBuffer.ToString();
+                    _dataBuffer.Clear();
+                }
+            }
+
+            if (!string.IsNullOrEmpty(dataToSend))
+            {
+                _syncContext?.Post(_ => DataReceived?.Invoke(dataToSend), null);
             }
         }
 
 
+      
+        private void FlushReceiveBufferOnThreadPool(object state)
+        {
+            string dataToDispatch = string.Empty;
+
+            lock (_bufferLock)
+            {
+                if (_dataBuffer.Length > 0)
+                {
+                    dataToDispatch = _dataBuffer.ToString();
+                    _dataBuffer.Clear(); // Xóa buffer sau khi lấy dữ liệu
+                }
+            }
+
+            if (!string.IsNullOrEmpty(dataToDispatch))
+            {
+                // Marshal về luồng UI
+                _syncContext?.Post(_ => DataReceived?.Invoke(dataToDispatch), null);
+            }
+        }
         private void DispatchData(string data)
         {
             _syncContext.Post(_ => DataReceived?.Invoke(data), null);
@@ -131,10 +195,10 @@ namespace start_wpf1.Service
 
                 _port.Write(data, 0, data.Length);
                 string hex = string.Join(" ", data.Select(b => b.ToString("X2")));
-                Console.WriteLine($"[SEND] Bytes: {hex}");
+                //Console.WriteLine($"[SEND] Bytes: {hex}");
 
                 string preview = Encoding.ASCII.GetString(data);
-                Console.WriteLine($"[SEND] String: {preview}");
+               // Console.WriteLine($"[SEND] String: {preview}");
 
                 _syncContext?.Post(_ => SentData?.Invoke(preview), null);
             }
