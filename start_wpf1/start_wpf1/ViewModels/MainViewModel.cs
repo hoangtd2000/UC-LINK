@@ -11,11 +11,13 @@ namespace start_wpf1.ViewModels
     {
         public CdcViewModel CdcVM { get; }
         public CanViewModel CanVM { get; }
+       // public CanConfigViewModel Config { get; }
 
         public MainViewModel()
         {
             CdcVM = new CdcViewModel(new CdcService());
             CanVM = new CanViewModel();
+         //   Config = new CanConfigViewModel();
         }
     }
 }

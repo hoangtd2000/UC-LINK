@@ -191,7 +191,7 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="USB HID qua CAN Protocol">
+            <TabItem Header="USB HID qua CAN Protocol" >
                 <Grid Margin="10"  DataContext="{Binding CanVM}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -203,36 +203,62 @@
                     </Grid.RowDefinitions>
 
                     <GroupBox Header="Cấu hình CAN Protocol" Grid.Row="0" Grid.Column="0" Margin="0,0,10,10"
-                              HorizontalAlignment="Stretch" VerticalAlignment="Top">
+          HorizontalAlignment="Stretch" VerticalAlignment="Top">
                         <StackPanel Margin="5">
-                            <TextBlock Text="{Binding IsConnected, StringFormat=Trạng thái kết nối: {0}}" Foreground="Green"/>
+                           
+
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
+                                <Label Content="Baud Rate (kbit/s):" />
+                                <ComboBox Margin="15,0,0,0" Width="90" ItemsSource="{Binding Config.BaudRateOptions}"
+                                            SelectedItem="{Binding Config.SelectedBaudRate}" />
+                            </StackPanel>
+
+                            <GroupBox Header="CAN ID Filter" Margin="0,5,0,0">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+                                        <RadioButton Content="Standard (11-bit ID)"
+             IsChecked="{Binding Config.IsStandardIdFilter, Mode=TwoWay}" />
+                                        <RadioButton Content="Extended (29-bit ID)"
+             IsChecked="{Binding Config.IsExtendedIdFilter, Mode=TwoWay}" Margin="15,0,0,0"/>
+                                    </StackPanel>
+
+                                    <Grid Margin="0,0,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="From ID(Hex):" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Config.FilterFromId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="100" HorizontalAlignment="Left" Margin="5,0"/>
+
+
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="To ID(Hex):" VerticalAlignment="Center" Margin="0,5,0,0"/>
+                                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Config.FilterToId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="100" HorizontalAlignment="Left" Margin="5,5,0,0"/>
+                                    </Grid>
+
+                                    <Button Content="Default Values" Command="{Binding Config.SetDefaultFilterValuesCommand}" Margin="0,5,0,0" HorizontalAlignment="Left" Padding="10,3"/>
+                                </StackPanel>
+                            </GroupBox>
 
                             <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                                <Label Content="Baud Rate:"/>
-                                <ComboBox x:Name="cmbCanBaudRate" Width="100">
-                                    <ComboBoxItem Content="125" />
-                                    <ComboBoxItem Content="500" IsSelected="True"/>
-                                </ComboBox>
-                               
-                                <!--<Button x:Name="btnConnectCan" Content="Kết nối CAN" Margin="10,0,0,0"/> -->
                                 <Button Content="Kết nối CAN"
-        Command="{Binding ConnectCanCommand}"
-        Margin="10,0,0,0" />
-
-
+                    Command="{Binding ConnectCanCommand}"
+                    Margin="0,0,30,0"
+                    IsEnabled="{Binding IsDisconnected}"/>
                                 <Button Content="Ngắt kết nối CAN"
-        Command="{Binding DisconnectCanCommand}"
-        Margin="5,0,0,0"
-        IsEnabled="{Binding IsConnected}"/>
+                    Command="{Binding DisconnectCanCommand}"
+                    IsEnabled="{Binding IsConnected}"/>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                               <!-- <Label Content="CAN ID Filter (Hex, cách nhau bằng dấu phẩy):"/>
-                                <TextBox x:Name="txtCanIdFilter" Width="200" Text="0x123, 0x456"/> -->
-                            </StackPanel>
-                            <Button x:Name="btnApplyCanConfig" Content="Áp dụng cấu hình CAN" Margin="0,10,0,0"/>
+
                         </StackPanel>
                     </GroupBox>
-
+                    
                     <GroupBox Header="Gửi CAN Frame" Grid.Row="1" Grid.Column="0" Margin="0,0,10,0">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -285,7 +311,7 @@
                                             <DataTemplate>
                                                 <Button Content="Gửi"
                             Command="{Binding DataContext.SendCanFrameCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                            CommandParameter="{Binding}"/>
+                            CommandParameter="{Binding}" />
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>

@@ -68,6 +68,7 @@
     <Compile Include="Service\CdcService.cs" />
     <Compile Include="Service\HidCanService.cs" />
     <Compile Include="Service\HidDeviceHelper.cs" />
+    <Compile Include="ViewModels\CanConfigViewModel.cs" />
     <Compile Include="ViewModels\CanViewModel.cs" />
     <Compile Include="ViewModels\CdcViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />

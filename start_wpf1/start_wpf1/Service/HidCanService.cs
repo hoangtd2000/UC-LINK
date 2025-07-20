@@ -1,4 +1,6 @@
-﻿using HidSharp;
+﻿
+
+using HidSharp;
 using System;
 using System.IO;
 using System.Linq;
@@ -12,6 +14,7 @@ namespace start_wpf1.Service
         private const int VendorId = 0x0078;
         private const int ProductId = 0x2000;
         private const int PacketSize = 64;
+        private const int HID_REPORT_PAYLOAD_SIZE = 64; // Đổi tên để rõ ràng hơn là kích thước payload
 
         private HidDevice _device;
         private HidStream _stream;
@@ -21,6 +24,13 @@ namespace start_wpf1.Service
 
         public event Action<byte[]> FrameReceived;
 
+        // Bổ sung phương thức để lấy kích thước payload của HID report (nếu cần)
+        public int GetHidReportPayloadSize()
+        {
+            // Nếu bạn muốn lấy từ Capabilities, hãy đảm bảo _device đã được mở
+            // return _device?.Capabilities.OutputReportByteLength ?? HID_REPORT_PAYLOAD_SIZE;
+            return HID_REPORT_PAYLOAD_SIZE; // Hiện tại dùng const
+        }
         public bool Connect()
         {
             var list = DeviceList.Local;
@@ -46,13 +56,39 @@ namespace start_wpf1.Service
             _stream?.Dispose();
             _stream = null;
         }
+        // THAY ĐỔI LỚN NHẤT: Thêm tham số reportId
+        public bool SendFrame(byte[] data, byte reportId)
+        {
+            if (!IsConnected || data == null) return false;
+
+            // Kích thước của gói HID để gửi là kích thước payload + 1 byte cho Report ID
+            var packet = new byte[HID_REPORT_PAYLOAD_SIZE + 1];
+
+            // Gán Report ID vào byte đầu tiên
+            packet[0] = reportId;
+
+            // Sao chép dữ liệu vào từ byte thứ 1
+            // Đảm bảo không sao chép quá kích thước payload
+            Array.Copy(data, 0, packet, 1, Math.Min(data.Length, HID_REPORT_PAYLOAD_SIZE));
+
+            try
+            {
+                _stream.Write(packet, 0, packet.Length);
+                System.Diagnostics.Debug.WriteLine($"Sent HID report (Report ID: {reportId:X2}): {BitConverter.ToString(packet)}");
+                return true;
+            }
+            catch (Exception ex) // Bắt ngoại lệ cụ thể để log chi tiết hơn
+            {
+                System.Diagnostics.Debug.WriteLine($"Error sending HID frame: {ex.Message}");
+                return false;
+            }
+        }
 
         public bool SendFrame(byte[] data)
         {
             if (!IsConnected || data == null) return false;
 
             var packet = new byte[PacketSize + 1]; // 1 byte cho Report ID
-            //packet[0] = 0x02; // Report ID, hoặc để = 0 nếu không sử dụng
 
             Array.Copy(data, 0, packet, 1, Math.Min(data.Length, PacketSize));
 
@@ -66,40 +102,6 @@ namespace start_wpf1.Service
                 return false;
             }
         }
-
-        /*
-        private void StartListening(CancellationToken token)
-        {
-            Task.Run(() =>
-            {
-                var buffer = new byte[PacketSize]; // +1 cho Report ID
-                while (!token.IsCancellationRequested)
-                {
-                    try
-                    {
-                        int bytesRead = _stream.Read(buffer, 0, buffer.Length);
-                        if (bytesRead > 1) // ít nhất có ReportID + 1 byte data
-                        {
-                            // Bỏ qua byte đầu (report ID), chỉ lấy phần payload
-                            byte[] received = new byte[bytesRead - 1];
-                            Array.Copy(buffer, 1, received, 0, received.Length);
-
-                            FrameReceived?.Invoke(received);
-                            System.Diagnostics.Debug.WriteLine("✅ Raised FrameReceived event");
-                        }
-                    }
-                    catch (IOException)
-                    {
-                        break;
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        break;
-                    }
-                }
-            }, token);
-        }
-        */
         private void StartListening(CancellationToken token)
         {
             Task.Run(async () =>
