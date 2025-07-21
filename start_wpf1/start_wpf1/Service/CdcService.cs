@@ -5,6 +5,7 @@ using System.Threading;
 using start_wpf1.Models;
 using System.Linq;
 using System.Windows.Threading;
+using System.IO;
 
 namespace start_wpf1.Service
 {
@@ -65,7 +66,7 @@ namespace start_wpf1.Service
 
                 _port.DataReceived += OnDataReceived;
                 _port.Open();
-                _flushTimer = new Timer(FlushDataToUI, null, 0, 100); // mỗi 100ms đẩy dữ liệu
+                _flushTimer = new Timer(FlushDataToUI, null, 200, 100); // mỗi 100ms đẩy dữ liệu
                 LogConnection($"[OPEN] {portName} @ {baudRate}bps");
 
             }
@@ -84,6 +85,7 @@ namespace start_wpf1.Service
                 {
                     _port.DataReceived -= OnDataReceived;
                     //thêm 
+                    _syncContext = null;
                     _flushTimer?.Dispose();
                     _flushTimer = null;
                     FlushReceiveBufferOnThreadPool(null);
@@ -111,7 +113,7 @@ namespace start_wpf1.Service
 
                 if (bytesRead > 0)
                 {
-                    string data = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                    string data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
                     // ✅ Thêm vào buffer (dùng lock vì Timer có thể đọc cùng lúc)
                     lock (_bufferLock)
@@ -119,10 +121,15 @@ namespace start_wpf1.Service
                         _dataBuffer.Append(data);
 
                         // Giới hạn buffer nếu quá lớn
-                        if (_dataBuffer.Length > 16384)
+                        if (_dataBuffer.Length > 65536)
                         {
-                            _dataBuffer.Clear(); // hoặc .Remove(0, N)
+                            _dataBuffer.Remove(0, _dataBuffer.Length - 32768);
                         }
+                       /* if (_dataBuffer.Length > 65536)
+                        {
+                            _dataBuffer.Remove(0, _dataBuffer.Length - 32768);
+                        }
+                        */
                     }
                 }
             }
@@ -177,6 +184,64 @@ namespace start_wpf1.Service
         private void DispatchData(string data)
         {
             _syncContext.Post(_ => DataReceived?.Invoke(data), null);
+        }
+        public void SendFile(string filePath, bool useCR, bool useLF, Action<string> log)
+        {
+            if (!File.Exists(filePath)) return;
+
+            try
+            {
+                string ext = Path.GetExtension(filePath).ToLower();
+                string fileName = Path.GetFileName(filePath);
+
+                if (ext == ".bin")
+                {
+                    byte[] raw = File.ReadAllBytes(filePath);
+                    string hexString = string.Join(" ", raw.Select(b => b.ToString("X2")));
+                    if (useCR) hexString += "\r";
+                    if (useLF) hexString += "\n";
+                    byte[] asciiBytes = Encoding.ASCII.GetBytes(hexString);
+                    SendBytes(asciiBytes);
+
+                    log?.Invoke($"[INFO] Đã gửi file BIN ({raw.Length} bytes dưới dạng chuỗi Hex)");
+                }
+                else
+                {
+                    var lines = File.ReadAllLines(filePath);
+                    foreach (var line in lines)
+                    {
+                        if (ext == ".hex")
+                        {
+                            string dataWithCrLf = line + "\r\n";
+                            byte[] asciiBytes = Encoding.ASCII.GetBytes(dataWithCrLf);
+                            SendBytes(asciiBytes);
+                        }
+                        else if (ext == ".dec")
+                        {
+                            byte[] decBytes = Helpers.DataConverter.ConvertToBytes(line, "DEC")
+                                .Concat(new byte[] { 0x0D, 0x0A })
+                                .ToArray();
+                            SendBytes(decBytes);
+                        }
+                        else
+                        {
+                            string data = line;
+                            if (useCR) data += "\r";
+                            if (useLF) data += "\n";
+                            byte[] asciiBytes = Encoding.ASCII.GetBytes(data);
+                            SendBytes(asciiBytes);
+                        }
+
+                        Thread.Sleep(1); // Nếu cần
+                    }
+
+                    log?.Invoke($"[INFO] Đã gửi file {fileName} ({lines.Length} dòng)");
+                }
+            }
+            catch (Exception ex)
+            {
+                log?.Invoke($"[ERR] Gửi file thất bại: {ex.Message}");
+            }
         }
 
         private void LogConnection(string msg)

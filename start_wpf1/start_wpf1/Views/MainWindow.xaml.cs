@@ -53,8 +53,18 @@ namespace start_wpf1
 
             _mainViewModel.CdcVM.AutoScrollRequest += () =>
             {
-               txtReceiveCdcData.ScrollToEnd();
+                //txtReceiveCdcData.ScrollToEnd();
+                /*Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (lstReceiveLines.Items.Count > 0)
+                    {
+                        object lastItem = lstReceiveLines.Items[lstReceiveLines.Items.Count - 1];
+                        lstReceiveLines.UpdateLayout(); // đảm bảo đã render
+                        lstReceiveLines.ScrollIntoView(lastItem);
+                    }
+                }), DispatcherPriority.ContextIdle);
 
+                */
             };
             
 
@@ -63,6 +73,27 @@ namespace start_wpf1
 
             // DataGrid Cdc
             dgCdcSend.ItemsSource = _mainViewModel.CdcVM.FramesToSend;
+        }
+        private void ListBox_Loaded(object sender, RoutedEventArgs e)
+        {
+            _mainViewModel.CdcVM.AutoScrollRequest += () =>
+            {
+                if (lstReceiveLines.Items.Count > 0)
+                {
+                    lstReceiveLines.ScrollIntoView(lstReceiveLines.Items[lstReceiveLines.Items.Count - 1]);
+                }
+                
+               /* Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (lstReceiveLines.Items.Count > 0)
+                    {
+                        object lastItem = lstReceiveLines.Items[lstReceiveLines.Items.Count - 1];
+                        lstReceiveLines.UpdateLayout(); // đảm bảo đã render
+                        lstReceiveLines.ScrollIntoView(lastItem);
+                    }
+                }), DispatcherPriority.ContextIdle);
+                */
+            };
         }
         private void SetupAutoComScan()
         {

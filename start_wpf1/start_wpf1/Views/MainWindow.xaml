@@ -171,7 +171,7 @@
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
-                            
+                            <!--
                             <TextBox x:Name="txtReceiveCdcData"
                             Text="{Binding CdcVM.ReceiveLog, UpdateSourceTrigger=PropertyChanged}"
                             IsReadOnly="True"
@@ -179,7 +179,17 @@
                             VerticalScrollBarVisibility="Auto"
                             FontFamily="Consolas"
                             FontSize="14"
-                            TextWrapping="Wrap"/>
+                            TextWrapping="Wrap"/> -->
+
+                            <ListBox x:Name="lstReceiveLines"
+         ItemsSource="{Binding CdcVM.ReceiveLines}"
+         FontFamily="Consolas"
+         FontSize="14"
+         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                     Loaded="ListBox_Loaded"
+         Margin="0,0,0,4"/>
+        <!-- Background="White"
+         Foreground="Lime" -->
 
 
                             <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Right" Margin="0,5,0,0">
