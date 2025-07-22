@@ -8,6 +8,9 @@ using start_wpf1.ViewModels;
 using start_wpf1.Service;
 using System.Windows.Controls;
 using System.Linq;
+using System.Windows.Media;
+using System.Text;
+
 namespace start_wpf1
 {
     /// <summary>
@@ -51,50 +54,86 @@ namespace start_wpf1
                 _mainViewModel.CdcVM.SelectedDisplayMode = selected;
             };
 
+            /*_mainViewModel.CdcVM.AutoScrollRequest += () =>
+             {
+                 if (lstReceiveLines.Items.Count == 0) return;
+
+                 var lastItem = lstReceiveLines.Items[lstReceiveLines.Items.Count - 1];
+                 lstReceiveLines.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                 {
+                     lstReceiveLines.ScrollIntoView(lastItem);
+                 }));
+             };*/
+
+            // Thay đổi AutoScrollRequest cho TextBox
+
+            // Đăng ký sự kiện nhận dữ liệu mới từ ViewModel để append vào TextBox
+            /*
+            _mainViewModel.CdcVM.NewLinesReceived += (lines) =>
+            {
+                txtReceiveLog.Dispatcher.Invoke(() =>
+                {
+                    // Nối chuỗi và append một lần
+                    string textToAppend = string.Join(Environment.NewLine, lines) + Environment.NewLine;
+
+                    txtReceiveLog.AppendText(textToAppend);
+                    txtReceiveLog.ScrollToEnd();
+
+                    // Nếu text quá dài, cắt bớt ở đầu (giữ tối đa 100000 ký tự)
+                    const int maxLength = 100000;
+                    if (txtReceiveLog.Text.Length > maxLength)
+                    {
+                        txtReceiveLog.Text = txtReceiveLog.Text.Substring(txtReceiveLog.Text.Length - maxLength);
+                        txtReceiveLog.CaretIndex = txtReceiveLog.Text.Length;
+                    }
+                });
+            };
+            */
+            
+            
             _mainViewModel.CdcVM.AutoScrollRequest += () =>
             {
-                //txtReceiveCdcData.ScrollToEnd();
-                /*Dispatcher.BeginInvoke(new Action(() =>
+                txtReceiveLog.Dispatcher.InvokeAsync(() =>
                 {
-                    if (lstReceiveLines.Items.Count > 0)
+                    txtReceiveLog.ScrollToEnd();
+                }, DispatcherPriority.Background);
+            };
+            _mainViewModel.CdcVM.NewLinesReceived += (textToAppend) =>
+            {
+                txtReceiveLog.Dispatcher.Invoke(() =>
+                {
+                    if (string.IsNullOrEmpty(textToAppend))
                     {
-                        object lastItem = lstReceiveLines.Items[lstReceiveLines.Items.Count - 1];
-                        lstReceiveLines.UpdateLayout(); // đảm bảo đã render
-                        lstReceiveLines.ScrollIntoView(lastItem);
+                        txtReceiveLog.Clear(); // Xóa toàn bộ khi nhận chuỗi rỗng
                     }
-                }), DispatcherPriority.ContextIdle);
-
-                */
+                    else
+                    {
+                        txtReceiveLog.AppendText(textToAppend);
+                        txtReceiveLog.ScrollToEnd();
+                    }
+                });
             };
             
-
 
             LoadComPorts();
 
             // DataGrid Cdc
             dgCdcSend.ItemsSource = _mainViewModel.CdcVM.FramesToSend;
         }
-        private void ListBox_Loaded(object sender, RoutedEventArgs e)
+        public static ScrollViewer FindScrollViewer(DependencyObject obj)
         {
-            _mainViewModel.CdcVM.AutoScrollRequest += () =>
+            if (obj is ScrollViewer) return (ScrollViewer)obj;
+
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
             {
-                if (lstReceiveLines.Items.Count > 0)
-                {
-                    lstReceiveLines.ScrollIntoView(lstReceiveLines.Items[lstReceiveLines.Items.Count - 1]);
-                }
-                
-               /* Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    if (lstReceiveLines.Items.Count > 0)
-                    {
-                        object lastItem = lstReceiveLines.Items[lstReceiveLines.Items.Count - 1];
-                        lstReceiveLines.UpdateLayout(); // đảm bảo đã render
-                        lstReceiveLines.ScrollIntoView(lastItem);
-                    }
-                }), DispatcherPriority.ContextIdle);
-                */
-            };
+                var child = VisualTreeHelper.GetChild(obj, i);
+                var result = FindScrollViewer(child);
+                if (result != null) return result;
+            }
+
+            return null;
         }
+
         private void SetupAutoComScan()
         {
             _comScanTimer = new DispatcherTimer
@@ -197,9 +236,12 @@ namespace start_wpf1
 
         private void btnClearCdcReceive_Click(object sender, RoutedEventArgs e)
         {
-            _mainViewModel.CdcVM.ClearReceive(); // gọi đúng cách
-        }
+            // Gọi hàm ClearReceive của ViewModel để xóa dữ liệu
+            _mainViewModel.CdcVM.ClearReceive();
 
+            // Đồng thời xóa nội dung trong TextBox hiển thị (ví dụ txtReceiveLog)
+            txtReceiveLog.Clear();
+        }
 
 
         private void TxtReceiveCdcData_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
@@ -272,7 +314,24 @@ namespace start_wpf1
                 return false;
             }
         }
+        private void ScrollToLastItemInListBox(ListBox listBox)
+        {
+            if (listBox.Items.Count == 0) return;
 
+            object lastItem = listBox.Items[listBox.Items.Count - 1];
+
+            // Bắt LayoutUpdated (gọi sau khi render xong)
+            EventHandler handler = null;
+            handler = (s, e) =>
+            {
+                listBox.LayoutUpdated -= handler;
+
+                var listBoxItem = listBox.ItemContainerGenerator.ContainerFromItem(lastItem) as FrameworkElement;
+                listBoxItem?.BringIntoView(); // Ép scroll tới item
+            };
+
+            listBox.LayoutUpdated += handler;
+        }
         private void btnSendCanFrame_Click(object sender, RoutedEventArgs e)
         {
 

@@ -66,7 +66,9 @@ namespace start_wpf1.Service
 
                 _port.DataReceived += OnDataReceived;
                 _port.Open();
-                _flushTimer = new Timer(FlushDataToUI, null, 200, 100); // mỗi 100ms đẩy dữ liệu
+                // _flushTimer = new Timer(FlushDataToUI, null, 200, 100); // mỗi 100ms đẩy dữ liệu
+                _flushTimer = new Timer(FlushDataToUI, null, 0, 200); // mỗi 250ms flush
+
                 LogConnection($"[OPEN] {portName} @ {baudRate}bps");
 
             }
@@ -232,7 +234,7 @@ namespace start_wpf1.Service
                             SendBytes(asciiBytes);
                         }
 
-                        Thread.Sleep(1); // Nếu cần
+                       
                     }
 
                     log?.Invoke($"[INFO] Đã gửi file {fileName} ({lines.Length} dòng)");
