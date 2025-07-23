@@ -129,7 +129,7 @@ HID_FrameFIFO_t hid_frame_fifo;
 __ALIGN_BEGIN static uint8_t CUSTOM_HID_ReportDesc[USBD_CUSTOM_HID_REPORT_DESC_SIZE] __ALIGN_END =
     {
         /* USER CODE BEGIN 0 */
-#if 0
+#if 1
     		0x06, 0x00, 0xff, //Usage Page(Undefined )
         0x09, 0x01,       // USAGE (Undefined)
         0xa1, 0x01,       // COLLECTION (Application)

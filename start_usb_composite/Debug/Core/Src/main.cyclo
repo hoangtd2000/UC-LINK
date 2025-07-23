@@ -1,4 +1,7 @@
-../Core/Src/main.c:68:6:Process_HID_Frames	4
-../Core/Src/main.c:93:5:main	1
-../Core/Src/main.c:153:6:SystemClock_Config	3
-../Core/Src/main.c:202:6:Error_Handler	1
+../Core/Src/main.c:79:6:Process_HID_Frames	3
+../Core/Src/main.c:95:6:CanTx_init	1
+../Core/Src/main.c:110:6:CanRx_init	1
+../Core/Src/main.c:131:5:main	1
+../Core/Src/main.c:203:6:SystemClock_Config	3
+../Core/Src/main.c:245:6:HAL_CAN_RxFifo0MsgPendingCallback	6
+../Core/Src/main.c:296:6:Error_Handler	1

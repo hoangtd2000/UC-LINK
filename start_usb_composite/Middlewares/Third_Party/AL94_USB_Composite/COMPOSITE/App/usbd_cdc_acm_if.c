@@ -316,6 +316,7 @@ static int8_t CDC_Init(uint8_t cdc_ch)
     if ((HAL_TIM_Base_Start_IT(&htim1) != HAL_OK )||(HAL_TIM_Base_Start_IT(&htim2) != HAL_OK ))
     {
       /* Starting Error */
+    	//HAL_TIM_Base_Stop_IT
       Error_Handler();
     }
 
@@ -336,6 +337,11 @@ static int8_t CDC_DeInit(uint8_t cdc_ch)
       /* Initialization Error */
       Error_Handler();
     }
+    if ((HAL_TIM_Base_Stop_IT(&htim1) != HAL_OK )||(HAL_TIM_Base_Stop_IT(&htim2) != HAL_OK ))
+        {
+          /* Starting Error */
+          Error_Handler();
+        }
   return (USBD_OK);
   /* USER CODE END 4 */
 }
