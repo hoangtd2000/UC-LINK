@@ -281,9 +281,24 @@
                             </Grid.RowDefinitions>
 
                             <DataGrid x:Name="dgCanSend" ItemsSource="{Binding CanFrames}" AutoGenerateColumns="False" CanUserAddRows="True" CanUserDeleteRows="True">
-
+                    
                                 <DataGrid.Columns>
+                                    
+                                    
+                                    
                                     <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
+
+                                    <DataGridTemplateColumn Header="Type" Width="80">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <ComboBox
+                ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.CanVM.FrameTypeOptions}"
+                SelectedItem="{Binding FrameType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                Width="70"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    
                                     <DataGridTemplateColumn Header="DLC" Width="60">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
@@ -294,7 +309,8 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-
+                                
+                                    
                                     <!-- Hiển thị từng byte nhập -->
                                     <DataGridTemplateColumn Header="Data" Width="*">
                                         <DataGridTemplateColumn.CellTemplate>
@@ -342,7 +358,7 @@
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
-
+                        <!--
                             <DataGrid x:Name="dgCanReceive"
           ItemsSource="{Binding ReceivedFrames}"
           AutoGenerateColumns="False"
@@ -354,7 +370,28 @@
                                     <DataGridTextColumn Header="Data" Binding="{Binding DataHex}" Width="*"/>
                                 </DataGrid.Columns>
                             </DataGrid>
+-->
+                            <DataGrid x:Name="dgCanReceive"
+          ItemsSource="{Binding ReceivedFrames}"
+          AutoGenerateColumns="False"
+          IsReadOnly="True">
+                                <DataGrid.Columns>
+                                    <!-- CAN ID -->
+                                    <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId}" Width="100"/>
 
+                                    <!-- Frame Type -->
+                                    <DataGridTextColumn Header="Type" Binding="{Binding FrameType}" Width="80"/>
+
+                                    <!-- DLC -->
+                                    <DataGridTextColumn Header="DLC" Binding="{Binding Dlc}" Width="40"/>
+
+                                    <!-- Data (hex) -->
+                                    <DataGridTextColumn Header="Data" Binding="{Binding DataHex}" Width="*"/>
+
+                                    <!-- Cycle -->
+                                    <DataGridCheckBoxColumn Header="Cycle" Binding="{Binding IsCyclic}" Width="60"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
                             <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Right" Margin="0,5,0,0">
                             
                                 <Button x:Name="btnClearCanReceive" Content="Xóa" Margin="0,0,0,0" Click="btnClearCanReceive_Click"/>
