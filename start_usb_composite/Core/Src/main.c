@@ -37,6 +37,7 @@
 /* USER CODE BEGIN PTD */
 extern USBD_HandleTypeDef hUsbDevice;
 extern CAN_HandleTypeDef hcan1;
+extern TIM_HandleTypeDef htim4;
 extern TIM_HandleTypeDef htim5;
 /* USER CODE END PTD */
 
@@ -59,8 +60,10 @@ CAN_TxHeaderTypeDef TxHeader;
 CAN_RxHeaderTypeDef RxHeader;
 CAN_FilterTypeDef  	sFilterConfig;
 uint32_t txMailbox;
-
-
+static  uint8_t usbFrame[64] = {0};
+extern HID_FrameFIFO_t hid_frame_fifo;
+HID_FrameFIFO_t hid_frame_fifo_receive;
+static uint8_t process_sendframe[HID_FRAME_BUFFER_SIZE] = {0};
 
 
 /* USER CODE END PV */
@@ -72,6 +75,14 @@ void Process_HID_Frames(void);
 void CanTx_init(uint32_t id, uint8_t dlc, uint8_t *data);
 void CanRx_init(void);
 
+uint8_t SendCanConfig(uint8_t *data);
+uint8_t SendCanMessage(uint8_t *data);
+uint8_t SendCanConfigConnect(uint8_t *data);
+uint8_t SendCanConfigDisconnect(uint8_t *data);
+uint8_t SendCanConfigBaud(uint8_t *data);
+uint8_t SendCanConfigFilter(uint8_t *data);
+uint8_t (*FuncSendCanArray[3])(uint8_t *data) = {0,SendCanConfig,SendCanMessage};
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -79,37 +90,53 @@ void CanRx_init(void);
 void Process_HID_Frames(void) {
     uint8_t frame[HID_FRAME_SIZE];
 
-    while (HID_Frame_Read(frame)) {
+    while (HID_Frame_Read(&hid_frame_fifo,frame)) {
         // Xử lý từng frame ở đây
-        // Ví dụ:
-
-        if (frame[0] == 2) {
-        	uint32_t id = (frame[2]<< 8) | frame[3];
-        	CanTx_init(id, frame[4], &frame[5]);
-        	//USBD_CUSTOM_HID_SendReport(&hUsbDevice, test_process1, sizeof(test_process1));
-        }
-
+//        if ( frame[0]== 2) {
+//        	uint32_t id = (frame[2]<< 8) | frame[3];
+//        	CanTx_init(id, frame[4], &frame[5]);
+//        }
+    	FuncSendCanArray[frame[0]](frame);
     }
+}
+
+uint8_t SendCanConfig(uint8_t *data){
+
+}
+uint8_t SendCanConfigConnect(uint8_t *data){
+
+}
+uint8_t SendCanConfigDisconnect(uint8_t *data){
+
+}
+uint8_t SendCanConfigBaud(uint8_t *data){
+
+}
+uint8_t SendCanConfigFilter(uint8_t *data){
+
+}
+
+
+
+uint8_t SendCanMessage(uint8_t *data){
+	uint32_t id = (data[2]<< 8) | data[3];
+	CanTx_init(id, data[4], &data[5]);
 }
 
 void CanTx_init(uint32_t id, uint8_t dlc, uint8_t *data){
 	uint8_t buffer[8] = {0};
 	uint32_t txMailbox;
-
 	TxHeader.StdId = id;
 	TxHeader.IDE = CAN_ID_STD;
 	TxHeader.RTR = CAN_RTR_DATA;
 	TxHeader.DLC = dlc;
 	TxHeader.TransmitGlobalTime = DISABLE;
-
 	memcpy(buffer, data, dlc);
-
 	HAL_CAN_AddTxMessage(&hcan1, &TxHeader, buffer, &txMailbox);
 }
 
 void CanRx_init(void){
 
-		//=================can filter==============//
 		sFilterConfig.FilterBank = 0;
 		sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
 		sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
@@ -122,6 +149,7 @@ void CanRx_init(void){
 		HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig);
 		HAL_CAN_ActivateNotification(&hcan1,CAN_IT_RX_FIFO0_MSG_PENDING);
 }
+
 /* USER CODE END 0 */
 
 /**
@@ -160,12 +188,12 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM1_Init();
   MX_TIM2_Init();
-  MX_TIM4_Init();
+  //MX_TIM4_Init();
   MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
   MX_USB_DEVICE_Init();
   HAL_TIM_Base_Start(&htim5);
-  HAL_TIM_Base_Start_IT(&htim4);
+  //HAL_TIM_Base_Start_IT(&htim4);
   HAL_CAN_Start(&hcan1);
   CanRx_init();
   //__HAL_TIM_GET_COUNTER(&htim5)
@@ -179,6 +207,10 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  Process_HID_Frames();
+//	  if(HID_Frame_Read(&hid_frame_fifo_receive,process_sendframe)){
+//	      	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_6);
+//	      	USBD_CUSTOM_HID_SendReport(&hUsbDevice,process_sendframe, HID_FRAME_SIZE);
+//	      }
 
 //	      if ((now - last_toggle_time) >= 1000)
 //	      {
@@ -242,17 +274,13 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-    uint8_t rxData[8];
-    uint8_t usbFrame[64] = {0}; // clear buffer
-    uint8_t frameLen = 0;
     memset(usbFrame, 0, sizeof(usbFrame));
-
-    if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rxData) == HAL_OK)
+    if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, &usbFrame[6]) == HAL_OK)
     {
-        HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7); // báo nhận
-
+       HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7); // báo nhận
         // Byte 0: CMD
         usbFrame[0] = 0x03;
 
@@ -272,17 +300,8 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
         usbFrame[3] = (canId >> 16) & 0xFF;
         usbFrame[4] = (canId >> 8) & 0xFF;
         usbFrame[5] = canId & 0xFF;
-
-        // Byte 6~6+DLC: data
-        for (uint8_t i = 0; i < dlc; ++i)
-        {
-            usbFrame[6 + i] = rxData[i];
-        }
-
-        frameLen = 6 + dlc;
-
-        // ✅ Gửi đúng độ dài thực tế (frameLen), hoặc 64 nếu host yêu cầu cố định
-        USBD_CUSTOM_HID_SendReport(&hUsbDevice, usbFrame, frameLen);
+       // HID_Frame_Write(&hid_frame_fifo_receive,usbFrame);
+        USBD_CUSTOM_HID_SendReport(&hUsbDevice,usbFrame, HID_FRAME_SIZE);
     }
 }
 

@@ -60,6 +60,7 @@
 
 /* USER CODE BEGIN INCLUDE */
 #include "main.h"
+#include "stdint.h"
 /* USER CODE END INCLUDE */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
@@ -121,7 +122,11 @@
 extern USBD_CUSTOM_HID_ItfTypeDef USBD_CustomHID_fops;
 
 /* USER CODE BEGIN EXPORTED_VARIABLES */
-
+typedef struct {
+    uint8_t frame[HID_FRAME_BUFFER_SIZE][HID_FRAME_SIZE];
+    volatile uint8_t head;
+    volatile uint8_t tail;
+} HID_FrameFIFO_t;
 /* USER CODE END EXPORTED_VARIABLES */
 
 /**
@@ -134,8 +139,11 @@ extern USBD_CUSTOM_HID_ItfTypeDef USBD_CustomHID_fops;
   */
 
 /* USER CODE BEGIN EXPORTED_FUNCTIONS */
-void HID_Frame_Write(uint8_t *data, uint16_t len);
-int HID_Frame_Read(uint8_t *dest_buf);
+//void HID_Frame_Write(uint8_t *data, uint16_t len);
+uint8_t HID_Frame_Write(HID_FrameFIFO_t *fifo, uint8_t *data);
+
+uint8_t HID_Frame_Read(HID_FrameFIFO_t *fifo, uint8_t *dest_buf);
+//int HID_Frame_Read(uint8_t *dest_buf);
 /* USER CODE END EXPORTED_FUNCTIONS */
 
 /**
