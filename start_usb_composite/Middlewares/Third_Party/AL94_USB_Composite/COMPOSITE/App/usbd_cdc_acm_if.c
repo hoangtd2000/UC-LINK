@@ -38,7 +38,6 @@ extern UART_HandleTypeDef huart5;
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
 extern HID_FrameFIFO_t hid_frame_fifo_receive;
-extern USBD_HandleTypeDef hUsbDevice;
 extern CAN_HandleTypeDef hcan1;
 extern TIM_HandleTypeDef htim4;
 extern TIM_HandleTypeDef htim5;
@@ -124,7 +123,7 @@ uint8_t CDC_RX_Buffer[NUMBER_OF_CDC][CDC_RX_BUFFER_SIZE] = {0};
 uint32_t CDC_RX_WriteIndex[NUMBER_OF_CDC] = {0};
 uint32_t CDC_RX_ReadIndex[NUMBER_OF_CDC] = {0};
 volatile uint8_t uart_tx_busy[NUMBER_OF_CDC] = {0};
-
+static uint8_t process_sendframe[HID_FRAME_BUFFER_SIZE] = {0};
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -591,10 +590,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         ProcessCDC_RX();
     else if (htim == &htim1)
         ProcessCDC_TX();
-//    else if(htim == &htim4 && (HID_Frame_Read(&hid_frame_fifo_receive,process_sendframe))){
-//    	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_6);
-//    	USBD_CUSTOM_HID_SendReport(&hUsbDevice,process_sendframe, HID_FRAME_SIZE);
-//    }
+    else if((htim == &htim4)  && (HID_Frame_Read(&hid_frame_fifo_receive,process_sendframe))){
+    		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_6);
+    	USBD_CUSTOM_HID_SendReport(&hUsbDevice,process_sendframe, HID_FRAME_SIZE);
+    }
 }
 
 //void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)

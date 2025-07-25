@@ -63,7 +63,7 @@ uint32_t txMailbox;
 static  uint8_t usbFrame[64] = {0};
 extern HID_FrameFIFO_t hid_frame_fifo;
 HID_FrameFIFO_t hid_frame_fifo_receive;
-static uint8_t process_sendframe[HID_FRAME_BUFFER_SIZE] = {0};
+
 
 
 /* USER CODE END PV */
@@ -91,17 +91,22 @@ void Process_HID_Frames(void) {
     uint8_t frame[HID_FRAME_SIZE];
 
     while (HID_Frame_Read(&hid_frame_fifo,frame)) {
-        // Xử lý từng frame ở đây
-//        if ( frame[0]== 2) {
-//        	uint32_t id = (frame[2]<< 8) | frame[3];
-//        	CanTx_init(id, frame[4], &frame[5]);
-//        }
     	FuncSendCanArray[frame[0]](frame);
     }
 }
 
 uint8_t SendCanConfig(uint8_t *data){
-
+	if(data[1] == 0){
+		  HAL_TIM_Base_Stop(&htim5);
+		  HAL_TIM_Base_Stop_IT(&htim4);
+		  HAL_CAN_Stop(&hcan1);
+	}
+	else{
+		  HAL_TIM_Base_Start(&htim5);
+		  HAL_TIM_Base_Start_IT(&htim4);
+		  HAL_CAN_Start(&hcan1);
+		    CanRx_init();
+	}
 }
 uint8_t SendCanConfigConnect(uint8_t *data){
 
@@ -119,20 +124,26 @@ uint8_t SendCanConfigFilter(uint8_t *data){
 
 
 uint8_t SendCanMessage(uint8_t *data){
-	uint32_t id = (data[2]<< 8) | data[3];
-	CanTx_init(id, data[4], &data[5]);
+	uint32_t id = (data[1]<< 24) |(data[2]<< 16) |(data[3]<< 8) | data[4];
+	CanTx_init(id, data[5], &data[6]);
 }
 
-void CanTx_init(uint32_t id, uint8_t dlc, uint8_t *data){
-	uint8_t buffer[8] = {0};
+void CanTx_init(uint32_t id, uint8_t DlcAndType, uint8_t *data){
 	uint32_t txMailbox;
-	TxHeader.StdId = id;
-	TxHeader.IDE = CAN_ID_STD;
+    switch(DlcAndType & 0x0F){
+    case CAN_ID_EXT:
+    	TxHeader.IDE = CAN_ID_EXT;
+    	TxHeader.ExtId = id;
+    	break;
+    case CAN_ID_STD:
+    	TxHeader.IDE = CAN_ID_STD;
+    	TxHeader.StdId = id;
+    	break;
+    }
 	TxHeader.RTR = CAN_RTR_DATA;
-	TxHeader.DLC = dlc;
+	TxHeader.DLC = (DlcAndType >> 4);
 	TxHeader.TransmitGlobalTime = DISABLE;
-	memcpy(buffer, data, dlc);
-	HAL_CAN_AddTxMessage(&hcan1, &TxHeader, buffer, &txMailbox);
+	HAL_CAN_AddTxMessage(&hcan1, &TxHeader, data, &txMailbox);
 }
 
 void CanRx_init(void){
@@ -188,14 +199,12 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM1_Init();
   MX_TIM2_Init();
-  //MX_TIM4_Init();
+  MX_TIM4_Init();
   MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
   MX_USB_DEVICE_Init();
-  HAL_TIM_Base_Start(&htim5);
-  //HAL_TIM_Base_Start_IT(&htim4);
-  HAL_CAN_Start(&hcan1);
-  CanRx_init();
+
+
   //__HAL_TIM_GET_COUNTER(&htim5)
   /* USER CODE END 2 */
 
@@ -278,9 +287,10 @@ void SystemClock_Config(void)
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
     memset(usbFrame, 0, sizeof(usbFrame));
+        uint32_t timestemp = __HAL_TIM_GET_COUNTER(&htim5);
     if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, &usbFrame[6]) == HAL_OK)
     {
-       HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7); // báo nhận
+      // HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7); // báo nhận
         // Byte 0: CMD
         usbFrame[0] = 0x03;
 
@@ -288,11 +298,12 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
         uint8_t dlc = RxHeader.DLC & 0x0F;
         uint8_t frameType = 0;
         if (RxHeader.IDE == CAN_ID_EXT)
-            frameType = 1;
-        else if (RxHeader.RTR == CAN_RTR_REMOTE)
-            frameType = 2;
+            {frameType = 8;}
+//        else if (RxHeader.RTR == CAN_RTR_REMOTE)
+//            frameType = 2;
 
         usbFrame[1] = (dlc << 4) | (frameType & 0x0F);
+        //usbFrame[1] = (dlc << 4) | (RxHeader.IDE & 0x0F);
 
         // Byte 2~5: CAN ID (big-endian)
         uint32_t canId = (RxHeader.IDE == CAN_ID_EXT) ? RxHeader.ExtId : RxHeader.StdId;
@@ -300,8 +311,12 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
         usbFrame[3] = (canId >> 16) & 0xFF;
         usbFrame[4] = (canId >> 8) & 0xFF;
         usbFrame[5] = canId & 0xFF;
-       // HID_Frame_Write(&hid_frame_fifo_receive,usbFrame);
-        USBD_CUSTOM_HID_SendReport(&hUsbDevice,usbFrame, HID_FRAME_SIZE);
+        usbFrame[14] = (timestemp >> 24) & 0xFF;
+        usbFrame[15] = (timestemp >> 16) & 0xFF;
+        usbFrame[16]= (timestemp >> 8) & 0xFF;
+        usbFrame[17] = (timestemp ) & 0xFF;
+        HID_Frame_Write(&hid_frame_fifo_receive,usbFrame);
+        //USBD_CUSTOM_HID_SendReport(&hUsbDevice,usbFrame, HID_FRAME_SIZE);
     }
 }
 

@@ -63,6 +63,7 @@
 uint8_t buffer[0x40];
 
 HID_FrameFIFO_t hid_frame_fifo;
+
 /* USER CODE END PV */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
