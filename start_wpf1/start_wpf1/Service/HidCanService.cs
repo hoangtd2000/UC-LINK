@@ -1,5 +1,4 @@
 ﻿
-
 using HidSharp;
 using System;
 using System.IO;

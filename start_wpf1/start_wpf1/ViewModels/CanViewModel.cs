@@ -60,87 +60,6 @@ namespace start_wpf1.ViewModels
                 OnPropertyChanged(nameof(IsDisconnected));
             }
         }
-        /*
-        private void StartCyclicSendWithStopwatch(CanFrame frame)
-        {
-            //string key = frame.CanId;
-            string key = $"frame_{frame.FrameIndex}";
-            var data = frame.ToBytes();
-            int intervalMs = frame.CycleTimeMs;
-
-            StopCyclicSend(key);
-
-            var cts = new CancellationTokenSource();
-            _cyclicSendTokens[key] = cts;
-
-            Task.Run(() =>
-            {
-                Stopwatch sw = new Stopwatch();
-                sw.Start();
-
-                long nextTick = sw.ElapsedMilliseconds;
-
-                while (!cts.Token.IsCancellationRequested)
-                {
-                    long now = sw.ElapsedMilliseconds;
-
-                    if (now >= nextTick)
-                    {
-                        _hidService.SendFrame(data, 0x00); // reportId bạn để cố định 0x00 hoặc sửa nếu có ý định khác
-                      //  Debug.WriteLine($"[Cyclic-Stopwatch] Sent frame CanId={key} at {DateTime.Now:HH:mm:ss.fff}: {BitConverter.ToString(data)}");
-                        nextTick += intervalMs;
-                    }
-
-                    int sleepTime = (int)(nextTick - sw.ElapsedMilliseconds);
-                    if (sleepTime > 0)
-                        Thread.Sleep(sleepTime);
-                }
-
-                sw.Stop();
-            }, cts.Token);
-        }
-
-        private void StopCyclicSend(string key)
-        {
-            if (_cyclicSendTokens.TryGetValue(key, out var cts))
-            {
-                cts.Cancel();
-                _cyclicSendTokens.Remove(key);
-                Debug.WriteLine($"[Cyclic] Stopped cyclic send for CanId={key}");
-            }
-        }
-
-        private void SendCanFrame(CanFrame frame)
-        {
-            if (!_hidService.IsConnected || frame == null)
-                return;
-
-            string key = frame.CanId;
-
-            if (frame.IsCyclic && frame.CycleTimeMs > 0)
-            {
-                if (_cyclicSendTokens.ContainsKey(key))
-                {
-                    StopCyclicSend(key);
-                }
-                else
-                {
-                    StartCyclicSendWithStopwatch(frame);
-                }
-            }
-            else
-            {
-                if (_cyclicSendTokens.ContainsKey(key))
-                {
-                    StopCyclicSend(key);
-                }
-
-                var bytes = frame.ToBytes();
-                _hidService.SendFrame(bytes, 0x00);
-                Debug.WriteLine($"[OneShot] Sent frame CanId={key} at {DateTime.Now:HH:mm:ss.fff}: {BitConverter.ToString(bytes)}");
-            }
-        }
-        */
         private void StartCyclicSendWithStopwatch(CanFrame frame)
         {
             string key = $"frame_{frame.FrameIndex}";
@@ -183,7 +102,7 @@ namespace start_wpf1.ViewModels
             {
                 cts.Cancel();
                 _cyclicSendTokens.Remove(key);
-                Debug.WriteLine($"[Cyclic] Stopped cyclic send for Key={key}");
+              //  Debug.WriteLine($"[Cyclic] Stopped cyclic send for Key={key}");
             }
         }
         private void SendCanFrame(CanFrame frame)
@@ -213,7 +132,7 @@ namespace start_wpf1.ViewModels
 
                 var bytes = frame.ToBytes();
                 _hidService.SendFrame(bytes, 0x00);
-                Debug.WriteLine($"[OneShot] Sent frame Key={key} at {DateTime.Now:HH:mm:ss.fff}: {BitConverter.ToString(bytes)}");
+              //  Debug.WriteLine($"[OneShot] Sent frame Key={key} at {DateTime.Now:HH:mm:ss.fff}: {BitConverter.ToString(bytes)}");
             }
         }
 
@@ -295,59 +214,15 @@ namespace start_wpf1.ViewModels
             IsConnected = false;
             Debug.WriteLine("CAN đã ngắt kết nối.");
         }
-        /*
         private void OnFrameReceived(byte[] data)
         {
-            Console.WriteLine($"🟢 Frame Received Handler called at {DateTime.Now:HH:mm:ss.fff}");
-
-            if (data == null || data.Length < 2)
-                return;
-
-            byte cmd = data[0];
-            Console.WriteLine($"🔍 FrameReceived invoked, CMD: {cmd:X2}");
-
-            if (cmd != 0x03)
-                return;
-
-            byte rawInfo = data[1];
-            byte dlc = (byte)((rawInfo >> 4) & 0x0F);
-            byte frameType = (byte)(rawInfo & 0x0F);
-
-            if (data.Length < 6 + dlc)
-            {
-                Debug.WriteLine("❌ Not enough data for full frame.");
-                return;
-            }
-
-            uint canId = ((uint)data[2] << 24) | ((uint)data[3] << 16) | ((uint)data[4] << 8) | data[5];
-
-            byte[] payload = new byte[dlc];
-            Array.Copy(data, 6, payload, 0, dlc);
-
-            string idFormatted = (frameType == 1) ? $"0x{canId:X8}" : $"0x{(canId & 0x7FF):X3}";
-
-            var newFrame = new CanFrame
-            {
-                Timestamp = DateTime.Now,
-                CanId = idFormatted,
-                Dlc = dlc,
-                DataBytesHex = new ObservableCollection<BindableByte>(
-                    payload.Select(b => new BindableByte { Value = b.ToString("X2") })
-                )
-            };
-
-            _frameBuffer.Enqueue(newFrame);
-        }
-        */
-        private void OnFrameReceived(byte[] data)
-        {
-            Console.WriteLine($"🟢 Frame Received Handler called at {DateTime.Now:HH:mm:ss.fff}");
+         //   Console.WriteLine($"🟢 Frame Received Handler called at {DateTime.Now:HH:mm:ss.fff}");
 
             if (data == null || data.Length < 14)
                 return;
 
             byte cmd = data[0];
-            Console.WriteLine($"🔍 FrameReceived invoked, CMD: {cmd:X2}");
+         //   Console.WriteLine($"🔍 FrameReceived invoked, CMD: {cmd:X2}");
 
             if (cmd != 0x03)
                 return;
@@ -359,7 +234,7 @@ namespace start_wpf1.ViewModels
 
             if (data.Length < 6 + dlc + 4)
             {
-                Debug.WriteLine("❌ Not enough data for full frame.");
+             //   Debug.WriteLine("❌ Not enough data for full frame.");
                 return;
             }
 
@@ -374,11 +249,11 @@ namespace start_wpf1.ViewModels
             Array.Copy(data, 6, payload, 0, dlc);
 
             // Byte 6+dlc ~ 6+dlc+3: CycleTime (4 bytes Big-Endian)
-            int cycleOffset = 6 + dlc;
-            uint rawCycle = ((uint)data[cycleOffset] << 24) |
-                            ((uint)data[cycleOffset + 1] << 16) |
-                            ((uint)data[cycleOffset + 2] << 8) |
-                            data[cycleOffset + 3];
+          //  int cycleOffset = 6 + dlc;
+            uint rawCycle = ((uint)data[14] << 24) |
+                            ((uint)data[15] << 16) |
+                            ((uint)data[16] << 8) |
+                            data[17];
             int cycleTimeMs = (int)(rawCycle * 0.1); // mỗi đơn vị = 100us → 0.1ms
 
             string idFormatted = isExtended

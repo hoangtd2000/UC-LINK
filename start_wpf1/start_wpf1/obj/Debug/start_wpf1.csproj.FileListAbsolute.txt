@@ -31,3 +31,4 @@ D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\start_wpf1.csproj.CoreCom
 D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\start_wpf1.csproj.CopyComplete
 D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\start_wpf1.exe
 D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\start_wpf1.pdb
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\start_wpf1.csprojAssemblyReference.cache
