@@ -21,6 +21,7 @@ D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\bin\Debug\HidSharp.pdb
 D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\bin\Debug\HidSharp.xml
 D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\Views\MainWindow.g.cs
 D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\App.g.cs
+D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\GeneratedInternalTypeHelper.g.cs
 D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\start_wpf1_MarkupCompile.cache
 D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\start_wpf1_MarkupCompile.lref
 D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\Views\MainWindow.baml
@@ -31,4 +32,3 @@ D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\start_wpf1.csproj.CoreCom
 D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\start_wpf1.csproj.CopyComplete
 D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\start_wpf1.exe
 D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\start_wpf1.pdb
-D:\Learn\1_wpf\UC-LINK\start_wpf1\start_wpf1\obj\Debug\start_wpf1.csprojAssemblyReference.cache

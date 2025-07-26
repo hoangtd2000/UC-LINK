@@ -4,7 +4,13 @@
         xmlns:local="clr-namespace:start_wpf1"
         xmlns:models="clr-namespace:start_wpf1.Models"
         xmlns:vm="clr-namespace:start_wpf1.ViewModels"  
+        xmlns:helpers="clr-namespace:start_wpf1.Helpers"
         Title="STM32 USB Composite Communicator" Height="650" Width="800">
+    <Window.Resources>
+        <helpers:InverseBoolConverter x:Key="InverseBoolConverter"/>
+    </Window.Resources>
+
+
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -39,10 +45,13 @@
                             <!-- Dòng 1: COM + Baudrate + Hiển thị kiểu dữ liệu -->
                             <WrapPanel Margin="0,5,0,0" VerticalAlignment="Center">
                                 <Label Content="COM :" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cmbComPorts" Width="70" Margin="5,0"/>
+                                <ComboBox x:Name="cmbComPorts" Width="70" Margin="5,0"
+          ItemsSource="{Binding CdcVM.AvailablePorts}"
+          SelectedItem="{Binding CdcVM.SelectedPort}" />
 
                                 <Label Content="Baud :" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                                <ComboBox x:Name="cmbBaudRate" Width="70" Margin="5,0">
+                                <ComboBox x:Name="cmbBaudRate" Width="70" Margin="5,0"
+          SelectedItem="{Binding CdcVM.SelectedBaudRate}">
                                     <ComboBoxItem Content="9600"/>
                                     <ComboBoxItem Content="19200"/>
                                     <ComboBoxItem Content="38400"/>
@@ -56,21 +65,25 @@
 
                             <!-- Dòng 2: DataBits + Parity + StopBits -->
                             <WrapPanel Margin="0,5,0,0" VerticalAlignment="Center">
+                                
                                 <Label Content="Data Bits:" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cmbDataBits" Width="50" Margin="5,0">
+                                <ComboBox x:Name="cmbDataBits" Width="50" Margin="5,0" 
+                                          SelectedItem="{Binding CdcVM.SelectedDataBits}">
                                     <ComboBoxItem Content="7"/>
                                     <ComboBoxItem Content="8" IsSelected="True"/>
                                 </ComboBox>
 
                                 <Label Content="Parity:" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cmbParity" Width="70" Margin="5,0">
+                                <ComboBox x:Name="cmbParity" Width="70" Margin="5,0" 
+                                          SelectedItem="{Binding CdcVM.SelectedParity}">
                                     <ComboBoxItem Content="None" IsSelected="True"/>
                                     <ComboBoxItem Content="Odd"/>
                                     <ComboBoxItem Content="Even"/>
                                 </ComboBox>
 
                                 <Label Content="Stop Bits:" Margin="1,0,0,0" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cmbStopBits" Width="50" Margin="5,0">
+                                <ComboBox x:Name="cmbStopBits" Width="50" Margin="5,0" 
+                                          SelectedItem="{Binding CdcVM.SelectedStopBits}">
                                     <ComboBoxItem Content="One" IsSelected="True"/>
                                     <ComboBoxItem Content="Two"/>
                                 </ComboBox>
@@ -84,11 +97,19 @@
 
                             <!-- Dòng 3: CR LF + Mở/Đóng COM -->
                             <WrapPanel Margin="0,10,0,0">
-                                <CheckBox x:Name="chkCR" Content="CR" Margin="0,0,10,0"/>
-                                <CheckBox x:Name="chkLF" Content="LF" Margin="0,0,20,0"/>
+                                <CheckBox Content="CR" Margin="0,0,10,0" IsChecked="{Binding CdcVM.AppendCR}" />
+                                <CheckBox Content="LF" Margin="0,0,20,0" IsChecked="{Binding CdcVM.AppendLF}" />
 
-                                <Button x:Name="btnOpenCom" Content="Open COM" Width="70" Margin="0,0,10,0" Click="BtnOpenCom_Click"/>
-                                <Button x:Name="btnCloseCom" Content="Close COM" Width="80" IsEnabled="False" Click="btnCloseCom_Click"/>
+                                <Button Content="Open COM"
+        Command="{Binding CdcVM.OpenComCommand}"
+        IsEnabled="{Binding CdcVM.IsSerialOpen, Converter={StaticResource InverseBoolConverter}}"
+        Width="70" Margin="0,0,10,0" />
+
+                                <Button Content="Close COM"
+        Command="{Binding CdcVM.CloseComCommand}"
+        IsEnabled="{Binding CdcVM.IsSerialOpen}"
+        Width="80" />
+
                             </WrapPanel>
 
                         </StackPanel>
@@ -152,13 +173,16 @@
                             
                                 <StackPanel Margin="20">
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                                    <Button Content="Gửi file" Click="btnSendFile_Click"
-                                    IsEnabled="{Binding CdcVM.IsSerialOpen}" Width="100" Margin="0,0,10,0"/>
-                                    <TextBlock x:Name="txtLastSentFile" Text="Chưa gửi file" VerticalAlignment="Center"/>
-                                    </StackPanel>
+                                    <Button Content="Gửi file"
+        Command="{Binding CdcVM.SendFileCommand}"
+        IsEnabled="{Binding CdcVM.IsSerialOpen}" Width="100" Margin="0,0,10,0"/>
+                                    <TextBlock Text="{Binding CdcVM.LastSentFileName}" VerticalAlignment="Center"/>
+
+                                </StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                        <Button Content="Lưu log" Click="btnSaveLog_Click" Width="100"/>
-                                        <TextBlock Text=" Lưu toàn bộ dữ liệu nhận được" Margin="10,0"/>
+                                    <Button Content="Lưu log" Command="{Binding CdcVM.SaveLogCommand}" Width="100"/>
+
+                                    <TextBlock Text=" Lưu toàn bộ dữ liệu nhận được" Margin="10,0"/>
                                     </StackPanel>
                                 </StackPanel>
                            
@@ -179,10 +203,15 @@
          VerticalScrollBarVisibility="Auto"
          HorizontalScrollBarVisibility="Auto"
          AcceptsReturn="True"
-         AcceptsTab="True" />
+         AcceptsTab="True" /> 
+
+
                             <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Right" Margin="0,5,0,0">
-                               
-                                <Button x:Name="btnClearCdcReceive" Content="Xóa" Margin="0,0,0,0" Click="btnClearCdcReceive_Click"/>
+
+                                <Button Content="Xóa"
+        Command="{Binding CdcVM.ClearReceiveCommand}"
+        Margin="0,0,0,0"/>
+
                             </StackPanel>
                         </Grid>
                     </GroupBox>

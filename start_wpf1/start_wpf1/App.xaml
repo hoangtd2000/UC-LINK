@@ -1,9 +1,11 @@
 ﻿<Application x:Class="start_wpf1.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:start_wpf1"
-             StartupUri="Views/MainWindow.xaml">
+             xmlns:helpers="clr-namespace:start_wpf1.Helpers">
+
     <Application.Resources>
-         
+        <ResourceDictionary>
+            <helpers:InverseBoolConverter x:Key="InverseBoolConverter"/>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

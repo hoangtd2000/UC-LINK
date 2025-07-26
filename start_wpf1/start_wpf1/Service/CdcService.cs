@@ -22,6 +22,7 @@ namespace start_wpf1.Service
         private readonly StringBuilder _dataBuffer = new StringBuilder();
         private Timer _flushTimer;
         private readonly object _bufferLock = new object();
+   
 
 
         public bool IsOpen => _port?.IsOpen ?? false;

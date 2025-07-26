@@ -12,6 +12,7 @@ using start_wpf1.Models;
 using start_wpf1.Service;
 using System.Collections.Generic;
 using start_wpf1.Helpers;
+using System.Windows;
 
 namespace start_wpf1.ViewModels
 {
@@ -24,6 +25,19 @@ namespace start_wpf1.ViewModels
 
         public event Action<string> NewLinesReceived;
 
+        public ICommand SendFileCommand { get; }
+        public ICommand SaveLogCommand { get; }
+        public ICommand ClearReceiveCommand { get; }
+        public ICommand OpenComCommand { get; }
+        public ICommand CloseComCommand { get; }
+
+
+        public string SelectedPort { get; set; }
+        public int SelectedBaudRate { get; set; } = 115200;
+        public int SelectedDataBits { get; set; } = 8;
+        public Parity SelectedParity { get; set; } = Parity.None;
+        public StopBits SelectedStopBits { get; set; } = StopBits.One;
+
         // Thay đổi: truyền 1 chuỗi lớn để append TextBox
 
         private const int MaxLines = 10000;
@@ -34,9 +48,13 @@ namespace start_wpf1.ViewModels
         public ObservableCollection<string> SendLogs { get; } = new ObservableCollection<string>();
         public ObservableCollection<string> ConnectionLogs { get; } = new ObservableCollection<string>();
         public ObservableCollection<CdcFrame> FramesToSend { get; } = new ObservableCollection<CdcFrame>();
+        private StringBuilder _receiveBuffer = new StringBuilder();
+        private string _incompleteLine = "";  // để lưu phần chưa hoàn chỉnh
+        private DispatcherTimer _comScanTimer;
 
-        public bool AppendCR { get; set; }
-        public bool AppendLF { get; set; }
+        public ObservableCollection<string> AvailablePorts { get; } = new ObservableCollection<string>();
+
+
         public Func<bool> GetAppendCR { get; set; }
         public Func<bool> GetAppendLF { get; set; }
 
@@ -61,11 +79,56 @@ namespace start_wpf1.ViewModels
                 {
                     _isSerialOpen = value;
                     OnPropertyChanged();
+                    CommandManager.InvalidateRequerySuggested();
+
+                    // ✅ Dừng hoặc chạy lại timer quét COM
+                    if (_isSerialOpen)
+                    {
+                        _comScanTimer?.Stop(); // Dừng nếu COM đang mở
+                    }
+                    else
+                    {
+                        _comScanTimer?.Start(); // Bắt đầu lại nếu COM đã đóng
+                        UpdateAvailablePorts(); // Cập nhật ngay danh sách cổng
+                    }
                 }
             }
         }
+        private bool _appendCR;
+        public bool AppendCR
+        {
+            get => _appendCR;
+            set
+            {
+                _appendCR = value;
+                OnPropertyChanged(nameof(AppendCR));
+            }
+        }
 
-        private string _incompleteLine = string.Empty;
+        private bool _appendLF;
+        public bool AppendLF
+        {
+            get => _appendLF;
+            set
+            {
+                _appendLF = value;
+                OnPropertyChanged(nameof(AppendLF));
+            }
+        }
+
+        private string _receiveLog = "";
+        public string ReceiveLog
+        {
+            get => _receiveLog;
+            set
+            {
+                _receiveLog = value;
+                OnPropertyChanged(nameof(ReceiveLog));
+            }
+        }
+
+
+
 
         public CdcViewModel(CdcService service)
         {
@@ -74,6 +137,27 @@ namespace start_wpf1.ViewModels
 
             SendCommand = new RelayCommand<CdcFrame>(SendFrame);
 
+
+            SendFileCommand = new RelayCommand(ExecuteSendFile);
+            SaveLogCommand = new RelayCommand(ExecuteSaveLog);
+            ClearReceiveCommand = new RelayCommand(ExecuteClearReceive);
+            OpenComCommand = new RelayCommand(ExecuteOpenCom, CanOpenCom);
+
+            CloseComCommand = new RelayCommand(ExecuteCloseCom, CanCloseCom);
+
+
+            _comScanTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _comScanTimer.Tick += (s, e) =>
+            {
+                if (!IsSerialOpen)
+                    UpdateAvailablePorts();
+            };
+
+            // ✅ Chỉ bắt đầu timer nếu chưa mở COM
+            if (!IsSerialOpen)
+                _comScanTimer.Start();
+
+
             _uiUpdateTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(50)
@@ -81,6 +165,113 @@ namespace start_wpf1.ViewModels
             _uiUpdateTimer.Tick += UiUpdateTimer_Tick;
             _uiUpdateTimer.Start();
         }
+        private void ExecuteSendFile()
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Supported Files|*.txt;*.hex;*.bin;*.dec|All files|*.*"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                SendFile(dialog.FileName);
+                LastSentFileName = $"Đã gửi: {System.IO.Path.GetFileName(dialog.FileName)}";
+            }
+        }
+        // Property này để binding ra View
+        private string _lastSentFileName;
+        public string LastSentFileName
+        {
+            get => _lastSentFileName;
+            set
+            {
+                _lastSentFileName = value;
+                OnPropertyChanged(nameof(LastSentFileName));
+            }
+        }
+
+
+        private void ExecuteSaveLog()
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "Text files (*.txt)|*.txt",
+                FileName = $"UC-LINK_cdc_log_{DateTime.Now:yyyyMMdd_HHmmss}.txt"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                SaveLogToFile(dialog.FileName);
+            }
+        }
+        private void ExecuteClearReceive( )
+        {
+            ClearReceive();
+
+            // Nếu bạn muốn dọn log đang hiển thị trên giao diện
+            NewLinesReceived?.Invoke(string.Empty);
+        }
+        private void ExecuteOpenCom()
+        {
+            try
+            {
+                OpenSerial(SelectedPort, SelectedBaudRate, SelectedParity, SelectedDataBits, SelectedStopBits);
+                IsSerialOpen = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Open COM error: {ex.Message}");
+            }
+        }
+
+        private bool CanOpenCom( )
+        {
+            return !IsSerialOpen;
+        }
+        private void ExecuteCloseCom( )
+        {
+            try
+            {
+                CloseSerial();
+                IsSerialOpen = false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Close comport ERROR: {ex.Message}");
+            }
+        }
+
+        private bool CanCloseCom( )
+        {
+            return IsSerialOpen;
+        }
+
+        private void UpdateAvailablePorts()
+        {
+            var ports = SerialPort.GetPortNames().OrderBy(p => p).ToList();
+
+            // Thêm cổng mới
+            foreach (var port in ports)
+            {
+                if (!AvailablePorts.Contains(port))
+                    AvailablePorts.Add(port);
+            }
+
+            // Xoá cổng đã biến mất
+            for (int i = AvailablePorts.Count - 1; i >= 0; i--)
+            {
+                if (!ports.Contains(AvailablePorts[i]))
+                    AvailablePorts.RemoveAt(i);
+            }
+
+            // ✅ Nếu không có COM nào đang chọn và danh sách không trống → chọn COM đầu tiên
+            if (string.IsNullOrEmpty(SelectedPort) && AvailablePorts.Count > 0)
+            {
+                SelectedPort = AvailablePorts[0];
+                OnPropertyChanged(nameof(SelectedPort)); // ⚠️ Bắt buộc phải gọi để UI cập nhật
+            }
+        }
+
 
         private void OnDataReceived(string data)
         {
@@ -88,6 +279,7 @@ namespace start_wpf1.ViewModels
             {
                 _lineQueue.Enqueue(data);
             }
+           // System.Diagnostics.Debug.WriteLine($"Received data: {data}");
         }
 
         private string FormatLine(string line)
@@ -98,83 +290,45 @@ namespace start_wpf1.ViewModels
                 return string.Join(" ", Encoding.ASCII.GetBytes(line).Select(b => b.ToString()));
             return line;
         }
-        private int _incompleteLineTickCounter = 0;
-        private const int IncompleteLineTimeoutTicks = 2; // hiển thị sau 5 lần tick (~500ms nếu timer 100ms)
 
+       
         private void UiUpdateTimer_Tick(object sender, EventArgs e)
         {
             List<string> newChunks;
 
             lock (_queueLock)
             {
-                if (_lineQueue.Count == 0 && string.IsNullOrEmpty(_incompleteLine))
+                if (_lineQueue.Count == 0)
                     return;
 
                 newChunks = _lineQueue.ToList();
                 _lineQueue.Clear();
             }
 
-            string combined = _incompleteLine + string.Concat(newChunks);
+            // Ghép tất cả chunk thành 1 chuỗi lớn
+            string combined = string.Concat(newChunks);
 
-            List<string> finalLines = new List<string>();
-            int lastNewlinePos = -1;
+            // Định dạng hiển thị
+            string formatted = FormatLine(combined);
 
-            for (int i = 0; i < combined.Length; i++)
-            {
-                if (combined[i] == '\r' || combined[i] == '\n')
-                {
-                    if (combined[i] == '\r' && i + 1 < combined.Length && combined[i + 1] == '\n')
-                        i++; // skip \n in \r\n
+            // Cập nhật log và collection
+            _fullLog.Add(formatted);
 
-                    string line = combined.Substring(lastNewlinePos + 1, i - lastNewlinePos - 1);
-                    finalLines.Add(line);
-                    lastNewlinePos = i;
-                }
-            }
+            // Nếu bạn dùng ObservableCollection<string> để hiển thị từng dòng, 
+            // bạn có thể thêm từng chunk làm một dòng, hoặc thêm toàn bộ chuỗi một dòng.
 
-            _incompleteLine = (lastNewlinePos + 1 < combined.Length)
-                ? combined.Substring(lastNewlinePos + 1)
-                : string.Empty;
+            ReceiveLines.Add(formatted);
 
-            // Nếu có dòng hoàn chỉnh => reset timeout
-            if (finalLines.Count > 0)
-                _incompleteLineTickCounter = 0;
-            else if (!string.IsNullOrEmpty(_incompleteLine))
-                _incompleteLineTickCounter++;
-            else
-                _incompleteLineTickCounter = 0;
-
-            // Nếu quá timeout => hiển thị incompleteLine như dòng hoàn chỉnh
-            if (_incompleteLineTickCounter >= IncompleteLineTimeoutTicks && !string.IsNullOrEmpty(_incompleteLine))
-            {
-                finalLines.Add(_incompleteLine);
-                _incompleteLine = "";
-                _incompleteLineTickCounter = 0;
-            }
-
-            foreach (var line in finalLines)
-            {
-                var formatted = FormatLine(line);
-                _fullLog.Add(formatted);
-                ReceiveLines.Add(formatted);
-            }
-
+            // Giới hạn số dòng
             while (ReceiveLines.Count > MaxLines)
                 ReceiveLines.RemoveAt(0);
 
-            if (finalLines.Count > 0)
-            {
-                string combinedText = string.Join(Environment.NewLine, finalLines.Select(FormatLine)) + Environment.NewLine;
-                NewLinesReceived?.Invoke(combinedText);
-            }
+            // Gửi sự kiện cập nhật UI
+            NewLinesReceived?.Invoke(formatted);
+
 
             AutoScrollRequest?.Invoke();
         }
-
-
-
-
-
 
         public void SendFile(string filePath)
         {
@@ -183,12 +337,10 @@ namespace start_wpf1.ViewModels
 
         private void SendFrame(CdcFrame frame)
         {
-            bool useCR = GetAppendCR?.Invoke() == true;
-            bool useLF = GetAppendLF?.Invoke() == true;
 
             string data = frame.DataString;
-            if (useCR) data += "\r";
-            if (useLF) data += "\n";
+            if (AppendCR) data += "\r";
+            if (AppendLF) data += "\n";
 
             byte[] dataBytes = frame.DataType == "ASCII"
                 ? Encoding.ASCII.GetBytes(data)
@@ -217,7 +369,6 @@ namespace start_wpf1.ViewModels
             }
 
             _incompleteLine = string.Empty;
-            _incompleteLineTickCounter = 0;
             _fullLog.Clear();
             ReceiveLines.Clear();
 
@@ -241,10 +392,12 @@ namespace start_wpf1.ViewModels
             }
         }
 
+
         private void LogConnection(string msg)
         {
             ConnectionLogs.Add($"[{DateTime.Now:HH:mm:ss}] {msg}");
         }
+
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string name = null)

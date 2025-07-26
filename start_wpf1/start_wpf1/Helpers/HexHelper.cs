@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Data;
 
 namespace start_wpf1.Helpers
 {
@@ -27,5 +28,6 @@ namespace start_wpf1.Helpers
 
             return bytes.ToArray();
         }
+        
     }
 }

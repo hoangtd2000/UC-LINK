@@ -11,6 +11,7 @@ using System.Linq;
 using System.Windows.Media;
 using System.Text;
 
+
 namespace start_wpf1
 {
     /// <summary>
@@ -21,9 +22,9 @@ namespace start_wpf1
         private readonly MainViewModel _mainViewModel;
 
 
-        private DispatcherTimer _comScanTimer;
+
         private string[] _lastPortNames = Array.Empty<string>();
-        private bool _isComConnected = false;
+
 
 
         public MainWindow()
@@ -41,54 +42,13 @@ namespace start_wpf1
                     dgCanReceive.ScrollIntoView(dgCanReceive.Items[dgCanReceive.Items.Count - 1]);
                 }
             };
-            // CdcViewModel logic
-            _mainViewModel.CdcVM.GetAppendCR = () => chkCR.IsChecked == true;
-            _mainViewModel.CdcVM.GetAppendLF = () => chkLF.IsChecked == true;
 
-            _lastPortNames = SerialPort.GetPortNames();
-            SetupAutoComScan();
 
             cmbDisplayMode.SelectionChanged += (s, e) =>
             {
                 var selected = ((ComboBoxItem)cmbDisplayMode.SelectedItem).Content.ToString();
                 _mainViewModel.CdcVM.SelectedDisplayMode = selected;
             };
-
-            /*_mainViewModel.CdcVM.AutoScrollRequest += () =>
-             {
-                 if (lstReceiveLines.Items.Count == 0) return;
-
-                 var lastItem = lstReceiveLines.Items[lstReceiveLines.Items.Count - 1];
-                 lstReceiveLines.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
-                 {
-                     lstReceiveLines.ScrollIntoView(lastItem);
-                 }));
-             };*/
-
-            // Thay đổi AutoScrollRequest cho TextBox
-
-            // Đăng ký sự kiện nhận dữ liệu mới từ ViewModel để append vào TextBox
-            /*
-            _mainViewModel.CdcVM.NewLinesReceived += (lines) =>
-            {
-                txtReceiveLog.Dispatcher.Invoke(() =>
-                {
-                    // Nối chuỗi và append một lần
-                    string textToAppend = string.Join(Environment.NewLine, lines) + Environment.NewLine;
-
-                    txtReceiveLog.AppendText(textToAppend);
-                    txtReceiveLog.ScrollToEnd();
-
-                    // Nếu text quá dài, cắt bớt ở đầu (giữ tối đa 100000 ký tự)
-                    const int maxLength = 100000;
-                    if (txtReceiveLog.Text.Length > maxLength)
-                    {
-                        txtReceiveLog.Text = txtReceiveLog.Text.Substring(txtReceiveLog.Text.Length - maxLength);
-                        txtReceiveLog.CaretIndex = txtReceiveLog.Text.Length;
-                    }
-                });
-            };
-            */
             
             
             _mainViewModel.CdcVM.AutoScrollRequest += () =>
@@ -98,6 +58,9 @@ namespace start_wpf1
                     txtReceiveLog.ScrollToEnd();
                 }, DispatcherPriority.Background);
             };
+
+            
+            
             _mainViewModel.CdcVM.NewLinesReceived += (textToAppend) =>
             {
                 txtReceiveLog.Dispatcher.Invoke(() =>
@@ -113,13 +76,11 @@ namespace start_wpf1
                     }
                 });
             };
-            
+           
 
-            LoadComPorts();
-
-            // DataGrid Cdc
             dgCdcSend.ItemsSource = _mainViewModel.CdcVM.FramesToSend;
         }
+
         public static ScrollViewer FindScrollViewer(DependencyObject obj)
         {
             if (obj is ScrollViewer) return (ScrollViewer)obj;
@@ -134,113 +95,13 @@ namespace start_wpf1
             return null;
         }
 
-        private void SetupAutoComScan()
-        {
-            _comScanTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(1)
-            };
+       
 
-            _comScanTimer.Tick += (s, e) =>
-            {
-                if (_isComConnected) return;
-
-                string[] currentPorts = SerialPort.GetPortNames();
-
-                if (!_lastPortNames.SequenceEqual(currentPorts))
-                {
-                    _lastPortNames = currentPorts;
-                    LoadComPorts();
-                }
-            };
-
-            _comScanTimer.Start();
-        }
-
-
-        private void btnSendCdcData_Click(object sender, RoutedEventArgs e)
-        {
-            _mainViewModel.CdcVM.AppendCR = chkCR.IsChecked == true;
-            _mainViewModel.CdcVM.AppendLF = chkLF.IsChecked == true;
-        }
-        private void btnSendFile_Click(object sender, RoutedEventArgs e)
-        {
-            var dialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = "Supported Files|*.txt;*.hex;*.bin;*.dec|All files|*.*"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                _mainViewModel.CdcVM.SendFile(dialog.FileName);
-                txtLastSentFile.Text = $"Đã gửi: {System.IO.Path.GetFileName(dialog.FileName)}";
-            }
-        }
-        private void btnSaveLog_Click(object sender, RoutedEventArgs e)
-        {
-            var dialog = new Microsoft.Win32.SaveFileDialog
-            {
-                Filter = "Text files (*.txt)|*.txt",
-                FileName = $"UC-LINK_cdc_log_{DateTime.Now:yyyyMMdd_HHmmss}.txt"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                _mainViewModel.CdcVM.SaveLogToFile(dialog.FileName);
-            }
-        }
+       
 
         private void btnClearCanReceive_Click(object sender, RoutedEventArgs e)
         {
             _mainViewModel.CanVM.ReceivedFrames.Clear();
-        }
-
-        private void BtnOpenCom_Click(object sender, RoutedEventArgs e)
-        {
-            _isComConnected = true;
-            string port = cmbComPorts.SelectedItem?.ToString() ?? "";
-            int baud = int.Parse(((ComboBoxItem)cmbBaudRate.SelectedItem).Content.ToString());
-            int databits = int.Parse(((ComboBoxItem)cmbDataBits.SelectedItem).Content.ToString());
-            var parity = (Parity)Enum.Parse(typeof(Parity), ((ComboBoxItem)cmbParity.SelectedItem).Content.ToString());
-            var stopBits = (StopBits)Enum.Parse(typeof(StopBits), ((ComboBoxItem)cmbStopBits.SelectedItem).Content.ToString());
-
-            try
-            {
-                _mainViewModel.CdcVM.OpenSerial(port, baud, parity, databits, stopBits);
-                txtConnectionStatus.Text = $"Opened {port}";
-                txtDeviceName.Text = $"UC-Link";
-                btnOpenCom.IsEnabled = false;
-                btnCloseCom.IsEnabled = true;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Open comport ERROR: {ex.Message}");
-            }
-        }
-
-        private void btnCloseCom_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                _mainViewModel.CdcVM.CloseSerial();
-                txtConnectionStatus.Text = "Disconect !";
-                btnOpenCom.IsEnabled = true;
-                btnCloseCom.IsEnabled = false;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Close comport ERROR: {ex.Message}");
-            }
-            _isComConnected = false;
-        }
-
-        private void btnClearCdcReceive_Click(object sender, RoutedEventArgs e)
-        {
-            // Gọi hàm ClearReceive của ViewModel để xóa dữ liệu
-            _mainViewModel.CdcVM.ClearReceive();
-
-            // Đồng thời xóa nội dung trong TextBox hiển thị (ví dụ txtReceiveLog)
-            txtReceiveLog.Clear();
         }
 
 
