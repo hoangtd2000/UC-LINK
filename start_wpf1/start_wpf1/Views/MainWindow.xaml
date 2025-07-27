@@ -343,10 +343,9 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-
-                                    <DataGridCheckBoxColumn Header="Cycle" Binding="{Binding IsCyclic}" Width="60"/>
+                                                
+                                    <DataGridCheckBoxColumn Header="Cycle" Binding="{Binding IsCyclic, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="60"/> 
                                     <DataGridTextColumn Header="Time (ms)" Binding="{Binding CycleTimeMs}" Width="80"/>
-                                    <DataGridCheckBoxColumn Header="Event" Binding="{Binding IsEventTriggered}" Width="60"/>
 
                                     <!-- Gửi -->
                                     <DataGridTemplateColumn Header="Gửi" Width="60">
@@ -393,8 +392,10 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                             <StackPanel Orientation="Horizontal" Grid.Row="1" HorizontalAlignment="Right" Margin="0,5,0,0">
-                            
-                                <Button x:Name="btnClearCanReceive" Content="Xóa" Margin="0,0,0,0" Click="btnClearCanReceive_Click"/>
+
+                                <Button Content="Xóa"
+        Command="{Binding ClearReceiveCommand}"
+        Margin="0,0,0,0"/>
                             </StackPanel>
                         </Grid>
                     </GroupBox>

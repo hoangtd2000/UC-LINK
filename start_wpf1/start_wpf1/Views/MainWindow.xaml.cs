@@ -95,24 +95,13 @@ namespace start_wpf1
             return null;
         }
 
-       
-
-       
-
-        private void btnClearCanReceive_Click(object sender, RoutedEventArgs e)
-        {
-            _mainViewModel.CanVM.ReceivedFrames.Clear();
-        }
 
 
         private void TxtReceiveCdcData_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
 
         }
-        private void BtnConnectCan_Click(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Đã bấm Kết nối CAN");
-        }
+
         private void LoadComPorts()
         {
             var availablePorts = SerialPort.GetPortNames()

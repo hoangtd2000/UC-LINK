@@ -61,14 +61,11 @@
     <Compile Include="Helpers\DataConverter.cs" />
     <Compile Include="Helpers\HexHelper.cs" />
     <Compile Include="Helpers\InverseBoolConverter.cs" />
-    <Compile Include="Helpers\Logger.cs" />
     <Compile Include="Helpers\RelayCommand.cs" />
     <Compile Include="Models\BindableByte.cs" />
     <Compile Include="Models\CdcFrame.cs" />
     <Compile Include="Service\CanService.cs" />
     <Compile Include="Service\CdcService.cs" />
-    <Compile Include="Service\HidCanService.cs" />
-    <Compile Include="Service\HidDeviceHelper.cs" />
     <Compile Include="ViewModels\CanConfigViewModel.cs" />
     <Compile Include="ViewModels\CanViewModel.cs" />
     <Compile Include="ViewModels\CdcViewModel.cs" />

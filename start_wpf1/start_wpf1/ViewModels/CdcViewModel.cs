@@ -160,7 +160,7 @@ namespace start_wpf1.ViewModels
 
             _uiUpdateTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(50)
+                Interval = TimeSpan.FromMilliseconds(30)
             };
             _uiUpdateTimer.Tick += UiUpdateTimer_Tick;
             _uiUpdateTimer.Start();

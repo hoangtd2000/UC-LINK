@@ -8244,45 +8244,45 @@ LOAD C:/ST/STM32CubeIDE_1.19.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
  .debug_line    0x00023240      0xb31 ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Core/Src/usbd_ioreq.o
  .debug_line    0x00023d71     0x1028 ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Target/usbd_conf.o
 
-.debug_str      0x00000000    0xd5bce
- .debug_str     0x00000000    0xd5bce ./Core/Src/can.o
-                              0xc9671 (size before relaxing)
- .debug_str     0x000d5bce    0xc92e1 ./Core/Src/dma.o
- .debug_str     0x000d5bce    0xc8e8f ./Core/Src/gpio.o
- .debug_str     0x000d5bce    0xc93be ./Core/Src/i2c.o
- .debug_str     0x000d5bce    0xce0c1 ./Core/Src/main.o
- .debug_str     0x000d5bce    0xc8dc4 ./Core/Src/stm32f4xx_hal_msp.o
- .debug_str     0x000d5bce    0xc9bd3 ./Core/Src/stm32f4xx_it.o
- .debug_str     0x000d5bce     0x7776 ./Core/Src/sysmem.o
- .debug_str     0x000d5bce    0xc8e74 ./Core/Src/system_stm32f4xx.o
- .debug_str     0x000d5bce    0xc99d2 ./Core/Src/tim.o
- .debug_str     0x000d5bce    0xc98b2 ./Core/Src/usart.o
- .debug_str     0x000d5bce    0xc981b ./Core/Src/usb_otg.o
- .debug_str     0x000d5bce       0x78 ./Core/Startup/startup_stm32f407vetx.o
- .debug_str     0x000d5bce    0xc99f8 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
- .debug_str     0x000d5bce    0xc956e ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.o
- .debug_str     0x000d5bce    0xc9774 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.o
- .debug_str     0x000d5bce    0xc928e ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.o
- .debug_str     0x000d5bce    0xc8fef ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.o
- .debug_str     0x000d5bce    0xc9e92 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.o
- .debug_str     0x000d5bce    0xc9952 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd.o
- .debug_str     0x000d5bce    0xc9242 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd_ex.o
- .debug_str     0x000d5bce    0xc92a8 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.o
- .debug_str     0x000d5bce    0xca1fe ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.o
- .debug_str     0x000d5bce    0xc9a0a ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.o
- .debug_str     0x000d5bce    0xc9889 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.o
- .debug_str     0x000d5bce    0xc982d ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.o
- .debug_str     0x000d5bce    0xce0db ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usb_device.o
- .debug_str     0x000d5bce    0xce87d ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_cdc_acm_if.o
- .debug_str     0x000d5bce    0xcdd2e ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_desc.o
- .debug_str     0x000d5bce    0xcd3c4 ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_hid_custom_if.o
- .debug_str     0x000d5bce    0xce1fc ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/CDC_ACM/Src/usbd_cdc_acm.o
- .debug_str     0x000d5bce    0xce2c8 ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/COMPOSITE/Src/usbd_composite.o
- .debug_str     0x000d5bce    0xcdc50 ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.o
- .debug_str     0x000d5bce    0xcd7eb ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Core/Src/usbd_core.o
- .debug_str     0x000d5bce    0xcd73d ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Core/Src/usbd_ctlreq.o
- .debug_str     0x000d5bce    0xcd632 ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Core/Src/usbd_ioreq.o
- .debug_str     0x000d5bce    0xce84a ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Target/usbd_conf.o
+.debug_str      0x00000000    0xd5bff
+ .debug_str     0x00000000    0xd5bff ./Core/Src/can.o
+                              0xc966e (size before relaxing)
+ .debug_str     0x000d5bff    0xc92de ./Core/Src/dma.o
+ .debug_str     0x000d5bff    0xc8e8c ./Core/Src/gpio.o
+ .debug_str     0x000d5bff    0xc93bb ./Core/Src/i2c.o
+ .debug_str     0x000d5bff    0xce0c1 ./Core/Src/main.o
+ .debug_str     0x000d5bff    0xc8dc1 ./Core/Src/stm32f4xx_hal_msp.o
+ .debug_str     0x000d5bff    0xc9bd0 ./Core/Src/stm32f4xx_it.o
+ .debug_str     0x000d5bff     0x7776 ./Core/Src/sysmem.o
+ .debug_str     0x000d5bff    0xc8e74 ./Core/Src/system_stm32f4xx.o
+ .debug_str     0x000d5bff    0xc99d2 ./Core/Src/tim.o
+ .debug_str     0x000d5bff    0xc98af ./Core/Src/usart.o
+ .debug_str     0x000d5bff    0xc9818 ./Core/Src/usb_otg.o
+ .debug_str     0x000d5bff       0x78 ./Core/Startup/startup_stm32f407vetx.o
+ .debug_str     0x000d5bff    0xc99f8 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
+ .debug_str     0x000d5bff    0xc956e ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.o
+ .debug_str     0x000d5bff    0xc9774 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.o
+ .debug_str     0x000d5bff    0xc928e ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.o
+ .debug_str     0x000d5bff    0xc8fef ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.o
+ .debug_str     0x000d5bff    0xc9e92 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.o
+ .debug_str     0x000d5bff    0xc9952 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd.o
+ .debug_str     0x000d5bff    0xc9242 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd_ex.o
+ .debug_str     0x000d5bff    0xc92a8 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.o
+ .debug_str     0x000d5bff    0xca1fe ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.o
+ .debug_str     0x000d5bff    0xc9a0a ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.o
+ .debug_str     0x000d5bff    0xc9889 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.o
+ .debug_str     0x000d5bff    0xc982d ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.o
+ .debug_str     0x000d5bff    0xce0db ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usb_device.o
+ .debug_str     0x000d5bff    0xce87d ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_cdc_acm_if.o
+ .debug_str     0x000d5bff    0xcdd2e ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_desc.o
+ .debug_str     0x000d5bff    0xcd3c4 ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_hid_custom_if.o
+ .debug_str     0x000d5bff    0xce1f9 ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/CDC_ACM/Src/usbd_cdc_acm.o
+ .debug_str     0x000d5bff    0xce2c8 ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/COMPOSITE/Src/usbd_composite.o
+ .debug_str     0x000d5bff    0xcdc4d ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/HID_CUSTOM/Src/usbd_hid_custom.o
+ .debug_str     0x000d5bff    0xcd7e8 ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Core/Src/usbd_core.o
+ .debug_str     0x000d5bff    0xcd73a ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Core/Src/usbd_ctlreq.o
+ .debug_str     0x000d5bff    0xcd62f ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Core/Src/usbd_ioreq.o
+ .debug_str     0x000d5bff    0xce84a ./Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Target/usbd_conf.o
 
 .comment        0x00000000       0x43
  .comment       0x00000000       0x43 ./Core/Src/can.o

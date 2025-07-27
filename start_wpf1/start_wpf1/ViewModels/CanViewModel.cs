@@ -12,15 +12,17 @@ using System.Linq;
 using System.Threading;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Collections.Specialized;
 
 namespace start_wpf1.ViewModels
 {
     public class CanViewModel : INotifyPropertyChanged
     {
-        private readonly HidCanService _hidService;
+        //private readonly HidCanService _hidService;
+        private readonly CanService _canService;
 
         private readonly Dictionary<string, CancellationTokenSource> _cyclicSendTokens = new Dictionary<string, CancellationTokenSource>();
-
+       
         public Action ScrollToLatestFrame { get; set; }
 
         private Queue<CanFrame> _frameBuffer = new Queue<CanFrame>();
@@ -41,6 +43,7 @@ namespace start_wpf1.ViewModels
         public ICommand ConnectCanCommand { get; }
         public ICommand DisconnectCanCommand { get; }
         public ICommand SendCanFrameCommand { get; }
+        public ICommand ClearReceiveCommand { get; }
 
         private CanConfigViewModel _config;
         public CanConfigViewModel Config
@@ -60,6 +63,7 @@ namespace start_wpf1.ViewModels
                 OnPropertyChanged(nameof(IsDisconnected));
             }
         }
+        /*
         private void StartCyclicSendWithStopwatch(CanFrame frame)
         {
             string key = $"frame_{frame.FrameIndex}";
@@ -84,7 +88,46 @@ namespace start_wpf1.ViewModels
 
                     if (now >= nextTick)
                     {
-                        _hidService.SendFrame(data, 0x00);
+                        _canService.SendFrame(data, 0x00);
+                        nextTick += intervalMs;
+                    }
+
+                    int sleepTime = (int)(nextTick - sw.ElapsedMilliseconds);
+                    if (sleepTime > 0)
+                        Thread.Sleep(sleepTime);
+                }
+
+                sw.Stop();
+            }, cts.Token);
+        }*/
+        private void StartCyclicSendWithStopwatch(CanFrame frame)
+        {
+            string key = $"frame_{frame.FrameIndex}";
+            var data = frame.ToBytes();
+            int intervalMs = frame.CycleTimeMs;
+
+            Debug.WriteLine($"[StartCyclic] Chuẩn bị gửi: {key} mỗi {intervalMs}ms");
+
+            StopCyclicSend(key);
+
+            var cts = new CancellationTokenSource();
+            _cyclicSendTokens[key] = cts;
+
+            Task.Run(() =>
+            {
+                Stopwatch sw = new Stopwatch();
+                sw.Start();
+
+                long nextTick = sw.ElapsedMilliseconds;
+
+                while (!cts.Token.IsCancellationRequested)
+                {
+                    long now = sw.ElapsedMilliseconds;
+
+                    if (now >= nextTick)
+                    {
+                        Debug.WriteLine($"[Send] Gửi chu kỳ: {key} lúc {DateTime.Now:HH:mm:ss.fff}");
+                        _canService.SendFrame(data, 0x00);
                         nextTick += intervalMs;
                     }
 
@@ -96,6 +139,8 @@ namespace start_wpf1.ViewModels
                 sw.Stop();
             }, cts.Token);
         }
+
+
         private void StopCyclicSend(string key)
         {
             if (_cyclicSendTokens.TryGetValue(key, out var cts))
@@ -105,9 +150,10 @@ namespace start_wpf1.ViewModels
               //  Debug.WriteLine($"[Cyclic] Stopped cyclic send for Key={key}");
             }
         }
+        /*
         private void SendCanFrame(CanFrame frame)
         {
-            if (!_hidService.IsConnected || frame == null)
+            if (!_canService.IsConnected || frame == null)
                 return;
 
             string key = $"frame_{frame.FrameIndex}";
@@ -131,40 +177,134 @@ namespace start_wpf1.ViewModels
                 }
 
                 var bytes = frame.ToBytes();
-                _hidService.SendFrame(bytes, 0x00);
+                _canService.SendFrame(bytes, 0x00);
               //  Debug.WriteLine($"[OneShot] Sent frame Key={key} at {DateTime.Now:HH:mm:ss.fff}: {BitConverter.ToString(bytes)}");
             }
         }
+        */
+        private void SendCanFrame(CanFrame frame)
+        {
+            if (!_canService.IsConnected || frame == null)
+                return;
+
+            var bytes = frame.ToBytes();
+            _canService.SendFrame(bytes, 0x00);
+        }
+
 
 
         public bool IsDisconnected => !IsConnected;
 
         public CanViewModel()
         {
-            _hidService = new HidCanService();
+            _canService = new CanService();
             Config = new CanConfigViewModel();
 
             ConnectCanCommand = new RelayCommand(ConnectCan);
             DisconnectCanCommand = new RelayCommand(DisconnectCan);
+            ClearReceiveCommand = new RelayCommand(ExecuteClearReceive);
             SendCanFrameCommand = new RelayCommand<CanFrame>(SendCanFrame);
+            CanFrames.CollectionChanged += CanFrames_CollectionChanged;
 
             _uiUpdateTimer = new DispatcherTimer();
             _uiUpdateTimer.Interval = TimeSpan.FromMilliseconds(UI_UPDATE_INTERVAL_MS);
             _uiUpdateTimer.Tick += UiUpdateTimer_Tick;
         }
 
+        private void CanFrames_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.NewItems != null)
+            {
+                foreach (CanFrame frame in e.NewItems)
+                {
+                    frame.PropertyChanged += Frame_PropertyChanged;
+                    Debug.WriteLine($"[Bind] Gắn PropertyChanged cho FrameIndex={frame.FrameIndex}");
+                }
+            }
+
+            if (e.OldItems != null)
+            {
+                foreach (CanFrame frame in e.OldItems)
+                {
+                    frame.PropertyChanged -= Frame_PropertyChanged;
+                    StopCyclicSend($"frame_{frame.FrameIndex}");
+                    Debug.WriteLine($"[Bind] Hủy PropertyChanged cho FrameIndex={frame.FrameIndex}");
+                }
+            }
+        }
+
+        /*
+        private void Frame_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (sender is CanFrame frame && e.PropertyName == nameof(CanFrame.IsCyclic))
+            {
+                string key = $"frame_{frame.FrameIndex}";
+
+                if (frame.IsCyclic && frame.CycleTimeMs > 0)
+                {
+                    StartCyclicSendWithStopwatch(frame);
+                }
+                else
+                {
+                    StopCyclicSend(key);
+                }
+            }
+        }
+        */
+
+
+
+        private void Frame_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (!(sender is CanFrame frame)) return;
+
+            string key = $"frame_{frame.FrameIndex}";
+
+            Debug.WriteLine($"[Frame_PropertyChanged] PropertyChanged: {e.PropertyName}, FrameIndex={frame.FrameIndex}, IsCyclic={frame.IsCyclic}, Time={frame.CycleTimeMs}");
+
+            if (e.PropertyName == nameof(CanFrame.IsCyclic))
+            {
+                if (frame.IsCyclic && frame.CycleTimeMs > 0)
+                {
+                    Debug.WriteLine($"[Cycle] Bắt đầu gửi lặp: {key}");
+                    StartCyclicSendWithStopwatch(frame);
+                }
+                else
+                {
+                    Debug.WriteLine($"[Cycle] Ngừng gửi: {key}");
+                    StopCyclicSend(key);
+                }
+            }
+
+            if (e.PropertyName == nameof(CanFrame.CycleTimeMs) && frame.IsCyclic)
+            {
+                Debug.WriteLine($"[Cycle] Cập nhật chu kỳ mới: {frame.CycleTimeMs}ms → Restart");
+                StopCyclicSend(key);
+                StartCyclicSendWithStopwatch(frame);
+            }
+        }
+
+
+
+
+        private void ExecuteClearReceive()
+        {
+            _frameBuffer.Clear();
+            ReceivedFrames.Clear();
+            Debug.WriteLine("CAN: Đã gọi ClearReceiveCommand");
+        }
         private bool _isFrameHandlerAttached = false;
 
         private void ConnectCan()
         {
             Debug.WriteLine("Đang cố gắng kết nối CAN...");
-            bool connected = _hidService.Connect();
+            bool connected = _canService.Connect();
 
             if (connected)
             {
                 if (!_isFrameHandlerAttached)
                 {
-                    _hidService.FrameReceived += OnFrameReceived;
+                    _canService.FrameReceived += OnFrameReceived;
                     _isFrameHandlerAttached = true;
                     Console.WriteLine("✅ FrameReceived handler đã được gắn.");
                 }
@@ -198,19 +338,19 @@ namespace start_wpf1.ViewModels
             _frameBuffer.Clear();
             ReceivedFrames.Clear();
 
-            if (_hidService.IsConnected)
+            if (_canService.IsConnected)
             {
                 SendCanDisableMessage();
             }
 
             if (_isFrameHandlerAttached)
             {
-                _hidService.FrameReceived -= OnFrameReceived;
+                _canService.FrameReceived -= OnFrameReceived;
                 _isFrameHandlerAttached = false;
                 Console.WriteLine("✅ FrameReceived handler đã được gỡ.");
             }
 
-            _hidService.Disconnect();
+            _canService.Disconnect();
             IsConnected = false;
             Debug.WriteLine("CAN đã ngắt kết nối.");
         }
@@ -305,7 +445,7 @@ namespace start_wpf1.ViewModels
 
         private void SendCanConfigMessage()
         {
-            if (!_hidService.IsConnected)
+            if (!_canService.IsConnected)
             {
                 Debug.WriteLine("Không thể gửi cấu hình: Dịch vụ HID chưa kết nối.");
                 return;
@@ -340,7 +480,7 @@ namespace start_wpf1.ViewModels
                 }
             }
 
-            byte[] configMessage = new byte[_hidService.GetHidReportPayloadSize()];
+            byte[] configMessage = new byte[_canService.GetHidReportPayloadSize()];
             Array.Clear(configMessage, 0, configMessage.Length);
 
             configMessage[0] = 0x01;
@@ -359,23 +499,23 @@ namespace start_wpf1.ViewModels
             configMessage[10] = (byte)((filterToId >> 16) & 0xFF);
             configMessage[11] = (byte)((filterToId >> 24) & 0xFF);
 
-            _hidService.SendFrame(configMessage, HID_OUTPUT_REPORT_ID);
+            _canService.SendFrame(configMessage, HID_OUTPUT_REPORT_ID);
             Debug.WriteLine("Sent CAN Config message (Payload): " + BitConverter.ToString(configMessage));
         }
 
         private void SendCanDisableMessage()
         {
-            if (!_hidService.IsConnected)
+            if (!_canService.IsConnected)
             {
                 Debug.WriteLine("Không thể gửi lệnh tắt: Dịch vụ HID chưa kết nối.");
                 return;
             }
 
-            byte[] disableMessage = new byte[_hidService.GetHidReportPayloadSize()];
+            byte[] disableMessage = new byte[_canService.GetHidReportPayloadSize()];
             Array.Clear(disableMessage, 0, disableMessage.Length);
             disableMessage[0] = 0x01;
 
-            _hidService.SendFrame(disableMessage, HID_OUTPUT_REPORT_ID);
+            _canService.SendFrame(disableMessage, HID_OUTPUT_REPORT_ID);
             Debug.WriteLine("Sent CAN Disable message (Payload): " + BitConverter.ToString(disableMessage));
         }
 

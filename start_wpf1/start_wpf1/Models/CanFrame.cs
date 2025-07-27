@@ -18,8 +18,9 @@ namespace start_wpf1.Models
 
     public ObservableCollection<BindableByte> DataBytesHex { get; set; }= new ObservableCollection<BindableByte>(Enumerable.Range(0, 8).Select(i => new BindableByte()).ToList());
         public IEnumerable<BindableByte> VisibleDataBytes => DataBytesHex.Take(Dlc);
+        private bool _isCyclic;
 
-    public string CanId { get; set; } = "000";
+        public string CanId { get; set; } = "000";
 
         private byte _dlc = 8;
 
@@ -63,10 +64,39 @@ namespace start_wpf1.Models
 
 
 
-        public bool IsCyclic { get; set; }
-    public int CycleTimeMs { get; set; } = 1000;
-    public bool IsEventTriggered { get; set; }
-    public DateTime Timestamp { get; set; }
+        public bool IsCyclic
+        {
+            get { return _isCyclic; }
+            set
+            {
+                if (_isCyclic != value)
+                {
+                    _isCyclic = value;
+                    OnPropertyChanged(nameof(IsCyclic));
+                }
+            }
+        }
+
+
+
+
+        // public int CycleTimeMs { get; set; } = 1000;
+        private int _cycleTimeMs = 1000;
+        public int CycleTimeMs
+        {
+            get { return _cycleTimeMs; }
+            set
+            {
+                if (_cycleTimeMs != value)
+                {
+                    _cycleTimeMs = value;
+                    OnPropertyChanged(nameof(CycleTimeMs));
+                }
+            }
+        }
+
+
+        public DateTime Timestamp { get; set; }
 
     public string DataHex => string.Join(" ", DataBytesHex.Take(Dlc).Select(b => b.Value));
 

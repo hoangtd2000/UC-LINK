@@ -12,7 +12,6 @@ namespace start_wpf1.Service
     public class CdcService
     {
         private SerialPort _port;
-        private readonly StringBuilder _receiveBuffer = new StringBuilder();
         private SynchronizationContext _syncContext;
 
         public event Action<string> DataReceived;
@@ -20,10 +19,14 @@ namespace start_wpf1.Service
         public event Action<string> ConnectionLog;
 
         private readonly StringBuilder _dataBuffer = new StringBuilder();
-        private Timer _flushTimer;
         private readonly object _bufferLock = new object();
-   
+        private Timer _flushTimer;
 
+        // ✅ Cấu hình giới hạn
+        private const int MaxBufferSize = 65536;     // Max RAM giữ lại (64KB)
+        private const int MaxFlushSize = 4096;       // Max mỗi lần gửi lên UI (4KB)
+       // private const int MaxBufferSize = 40000;     // Max RAM giữ lại (64KB)
+        //private const int MaxFlushSize = 2000;       // Max mỗi lần gửi lên UI (4KB)
 
         public bool IsOpen => _port?.IsOpen ?? false;
 
@@ -35,12 +38,7 @@ namespace start_wpf1.Service
                 {
                     _port.DiscardInBuffer();
                     _port.DiscardOutBuffer();
-
                     Console.WriteLine("[CDC] Clear buffer cổng COM");
-                }
-                else
-                {
-                    Console.WriteLine("[CDC] Không thể xóa buffer: COM chưa mở");
                 }
             }
             catch (Exception ex)
@@ -49,12 +47,11 @@ namespace start_wpf1.Service
             }
         }
 
-
         public void Open(string portName, int baudRate, Parity parity, int dataBits, StopBits stopBits)
         {
             try
             {
-                Close(); // đảm bảo đóng trước
+                Close();
 
                 _port = new SerialPort(portName, baudRate, parity, dataBits, stopBits)
                 {
@@ -67,11 +64,10 @@ namespace start_wpf1.Service
 
                 _port.DataReceived += OnDataReceived;
                 _port.Open();
-                // _flushTimer = new Timer(FlushDataToUI, null, 200, 100); // mỗi 100ms đẩy dữ liệu
-                _flushTimer = new Timer(FlushDataToUI, null, 0, 200); // mỗi 250ms flush
+
+                _flushTimer = new Timer(FlushDataToUI, null, 0, 50); // ⏱️ flush mỗi 250ms
 
                 LogConnection($"[OPEN] {portName} @ {baudRate}bps");
-
             }
             catch (Exception ex)
             {
@@ -87,11 +83,12 @@ namespace start_wpf1.Service
                 if (_port != null)
                 {
                     _port.DataReceived -= OnDataReceived;
-                    //thêm 
                     _syncContext = null;
                     _flushTimer?.Dispose();
                     _flushTimer = null;
-                    FlushReceiveBufferOnThreadPool(null);
+
+                    FlushReceiveBufferOnThreadPool(null); // Đẩy phần còn lại
+
                     if (_port.IsOpen)
                         _port.Close();
 
@@ -118,21 +115,15 @@ namespace start_wpf1.Service
                 {
                     string data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
-                    // ✅ Thêm vào buffer (dùng lock vì Timer có thể đọc cùng lúc)
                     lock (_bufferLock)
                     {
                         _dataBuffer.Append(data);
 
-                        // Giới hạn buffer nếu quá lớn
-                        if (_dataBuffer.Length > 65536)
+                        // ✅ Nếu buffer vượt ngưỡng → cắt đầu đi để giải phóng RAM
+                        if (_dataBuffer.Length > MaxBufferSize)
                         {
-                            _dataBuffer.Remove(0, _dataBuffer.Length - 32768);
+                            _dataBuffer.Remove(0, _dataBuffer.Length - MaxBufferSize / 2); // Giữ lại 50%
                         }
-                       /* if (_dataBuffer.Length > 65536)
-                        {
-                            _dataBuffer.Remove(0, _dataBuffer.Length - 32768);
-                        }
-                        */
                     }
                 }
             }
@@ -144,6 +135,7 @@ namespace start_wpf1.Service
                 }
             }
         }
+
         private void FlushDataToUI(object state)
         {
             string dataToSend = null;
@@ -152,8 +144,9 @@ namespace start_wpf1.Service
             {
                 if (_dataBuffer.Length > 0)
                 {
-                    dataToSend = _dataBuffer.ToString();
-                    _dataBuffer.Clear();
+                    int len = Math.Min(_dataBuffer.Length, MaxFlushSize);
+                    dataToSend = _dataBuffer.ToString(0, len);
+                    _dataBuffer.Remove(0, len); // ✅ xóa sau khi flush
                 }
             }
 
@@ -163,8 +156,6 @@ namespace start_wpf1.Service
             }
         }
 
-
-      
         private void FlushReceiveBufferOnThreadPool(object state)
         {
             string dataToDispatch = string.Empty;
@@ -174,20 +165,61 @@ namespace start_wpf1.Service
                 if (_dataBuffer.Length > 0)
                 {
                     dataToDispatch = _dataBuffer.ToString();
-                    _dataBuffer.Clear(); // Xóa buffer sau khi lấy dữ liệu
+                    _dataBuffer.Clear();
                 }
             }
 
             if (!string.IsNullOrEmpty(dataToDispatch))
             {
-                // Marshal về luồng UI
                 _syncContext?.Post(_ => DataReceived?.Invoke(dataToDispatch), null);
             }
         }
-        private void DispatchData(string data)
+
+        private void LogConnection(string msg)
         {
-            _syncContext.Post(_ => DataReceived?.Invoke(data), null);
+            _syncContext?.Post(_ => ConnectionLog?.Invoke(msg), null);
         }
+
+        public void SendBytes(byte[] data)
+        {
+            try
+            {
+                if (!IsOpen)
+                {
+                    LogConnection("[WARN] Cổng COM chưa mở.");
+                    return;
+                }
+
+                _port.Write(data, 0, data.Length);
+                string preview = Encoding.ASCII.GetString(data);
+                _syncContext?.Post(_ => SentData?.Invoke(preview), null);
+            }
+            catch (Exception ex)
+            {
+                LogConnection($"[ERR] Gửi bytes thất bại: {ex.Message}");
+            }
+        }
+
+        public void Send(CdcFrame frame)
+        {
+            try
+            {
+                if (!IsOpen)
+                {
+                    LogConnection("[WARN] Cổng COM chưa mở.");
+                    return;
+                }
+
+                byte[] dataBytes = Helpers.DataConverter.ConvertToBytes(frame.DataString, frame.DataType);
+                _port.Write(dataBytes, 0, dataBytes.Length);
+                _syncContext?.Post(_ => SentData?.Invoke(frame.DataString), null);
+            }
+            catch (Exception ex)
+            {
+                LogConnection($"[ERR] Gửi thất bại: {ex.Message}");
+            }
+        }
+
         public void SendFile(string filePath, bool useCR, bool useLF, Action<string> log)
         {
             if (!File.Exists(filePath)) return;
@@ -213,29 +245,12 @@ namespace start_wpf1.Service
                     var lines = File.ReadAllLines(filePath);
                     foreach (var line in lines)
                     {
-                        if (ext == ".hex")
-                        {
-                            string dataWithCrLf = line + "\r\n";
-                            byte[] asciiBytes = Encoding.ASCII.GetBytes(dataWithCrLf);
-                            SendBytes(asciiBytes);
-                        }
-                        else if (ext == ".dec")
-                        {
-                            byte[] decBytes = Helpers.DataConverter.ConvertToBytes(line, "DEC")
-                                .Concat(new byte[] { 0x0D, 0x0A })
-                                .ToArray();
-                            SendBytes(decBytes);
-                        }
-                        else
-                        {
-                            string data = line;
-                            if (useCR) data += "\r";
-                            if (useLF) data += "\n";
-                            byte[] asciiBytes = Encoding.ASCII.GetBytes(data);
-                            SendBytes(asciiBytes);
-                        }
+                        string data = line;
+                        if (useCR) data += "\r";
+                        if (useLF) data += "\n";
 
-                       
+                        byte[] asciiBytes = Encoding.ASCII.GetBytes(data);
+                        SendBytes(asciiBytes);
                     }
 
                     log?.Invoke($"[INFO] Đã gửi file {fileName} ({lines.Length} dòng)");
@@ -244,54 +259,6 @@ namespace start_wpf1.Service
             catch (Exception ex)
             {
                 log?.Invoke($"[ERR] Gửi file thất bại: {ex.Message}");
-            }
-        }
-
-        private void LogConnection(string msg)
-        {
-            _syncContext?.Post(_ => ConnectionLog?.Invoke(msg), null);
-        }
-        public void SendBytes(byte[] data)
-        {
-            try
-            {
-                if (!IsOpen)
-                {
-                    LogConnection("[WARN] Cổng COM chưa mở.");
-                    return;
-                }
-
-                _port.Write(data, 0, data.Length);
-                string hex = string.Join(" ", data.Select(b => b.ToString("X2")));
-                //Console.WriteLine($"[SEND] Bytes: {hex}");
-
-                string preview = Encoding.ASCII.GetString(data);
-               // Console.WriteLine($"[SEND] String: {preview}");
-
-                _syncContext?.Post(_ => SentData?.Invoke(preview), null);
-            }
-            catch (Exception ex)
-            {
-                LogConnection($"[ERR] Gửi bytes thất bại: {ex.Message}");
-            }
-        }
-        public void Send(CdcFrame frame)
-        {
-            try
-            {
-                if (!IsOpen)
-                {
-                    LogConnection("[WARN] Cổng COM chưa mở.");
-                    return;
-                }
-                byte[] dataBytes = Helpers.DataConverter.ConvertToBytes(frame.DataString, frame.DataType);
-                _port.Write(dataBytes, 0, dataBytes.Length);
-
-                _syncContext.Post(_ => SentData?.Invoke(frame.DataString), null);
-            }
-            catch (Exception ex)
-            {
-                LogConnection($"[ERR] Gửi thất bại: {ex.Message}");
             }
         }
     }
