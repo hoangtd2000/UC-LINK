@@ -66,8 +66,8 @@ all: main-build
 main-build: start_usb_composite.elf secondary-outputs
 
 # Tool invocations
-start_usb_composite.elf start_usb_composite.map: $(OBJS) $(USER_OBJS) D:\Learn\1_wpf\UC-LINK\start_usb_composite\STM32F407VETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "start_usb_composite.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"D:\Learn\1_wpf\UC-LINK\start_usb_composite\STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="start_usb_composite.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+start_usb_composite.elf start_usb_composite.map: $(OBJS) $(USER_OBJS) D:\1_Product_test\UC-LINK\start_usb_composite\STM32F407VETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "start_usb_composite.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"D:\1_Product_test\UC-LINK\start_usb_composite\STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="start_usb_composite.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

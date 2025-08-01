@@ -31,6 +31,8 @@
 #include "usb_device.h"
 #include "usbd_hid_custom.h"
 #include "usbd_hid_custom_if.h"
+#include "math.h"
+#include "float.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,8 +56,7 @@ extern TIM_HandleTypeDef htim5;
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint8_t test_process1[64] = {0x03, 0x80, 0x00, 0x00, 0x03, 0x21, 0x11, 0x22, 0x33, 0x44,0x55, 0x66, 0x77, 0x88,};
-uint8_t test_process2[64] = {0x03, 0x80, 0x00, 0x00, 0x01, 0x23, 0x78, 0x20, 0x78, 0x21,0x78, 0x20, 0x78, 0x21,};
+
 CAN_TxHeaderTypeDef TxHeader;
 CAN_RxHeaderTypeDef RxHeader;
 CAN_FilterTypeDef  	sFilterConfig;
@@ -63,7 +64,17 @@ uint32_t txMailbox;
 static  uint8_t usbFrame[64] = {0};
 extern HID_FrameFIFO_t hid_frame_fifo;
 HID_FrameFIFO_t hid_frame_fifo_receive;
+uint32_t apb1_freq = 0;
 
+#define SAMPLE_POINT_SCALE 1000U
+typedef struct {
+    int tq_total;
+    int prescaler;
+    int tseg1;
+    int tseg2;
+    float actual_sample_point;
+    float sample_point_error;
+} CAN_TimingConfig;
 
 
 /* USER CODE END PV */
@@ -82,6 +93,7 @@ uint8_t SendCanConfigDisconnect(uint8_t *data);
 uint8_t SendCanConfigBaud(uint8_t *data);
 uint8_t SendCanConfigFilter(uint8_t *data);
 uint8_t (*FuncSendCanArray[3])(uint8_t *data) = {0,SendCanConfig,SendCanMessage};
+CAN_TimingConfig find_best_timing(uint32_t baudrate, uint16_t desired_sample_point);
 
 /* USER CODE END PFP */
 
@@ -96,31 +108,121 @@ void Process_HID_Frames(void) {
 }
 
 uint8_t SendCanConfig(uint8_t *data){
-	if(data[1] == 0){
-		  HAL_TIM_Base_Stop(&htim5);
-		  HAL_TIM_Base_Stop_IT(&htim4);
-		  HAL_CAN_Stop(&hcan1);
-	}
-	else{
-		  HAL_TIM_Base_Start(&htim5);
-		  HAL_TIM_Base_Start_IT(&htim4);
-		  HAL_CAN_Start(&hcan1);
-		    CanRx_init();
+	switch(data[1]){
+	case 0 :
+		SendCanConfigDisconnect(data);
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_6);
+		break;
+	default:
+		SendCanConfigConnect(data);
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7);
+		break;
 	}
 }
 uint8_t SendCanConfigConnect(uint8_t *data){
-
+	  HAL_TIM_Base_Start(&htim5);
+	  HAL_TIM_Base_Start_IT(&htim4);
+	  SendCanConfigBaud(data);
+	  HAL_CAN_Start(&hcan1);
+	  CanRx_init();
 }
 uint8_t SendCanConfigDisconnect(uint8_t *data){
+	  HAL_TIM_Base_Stop(&htim5);
+	  HAL_TIM_Base_Stop_IT(&htim4);
+	  if (HAL_CAN_DeInit(&hcan1) != HAL_OK)
+	   {
+	     Error_Handler();
+	   }
+	  HAL_CAN_Stop(&hcan1);
 
 }
 uint8_t SendCanConfigBaud(uint8_t *data){
-
+	uint32_t baudrate = ((data[2] << 8) | data[1]) * 1000;
+	uint16_t desired_sample_point = 875;
+    CAN_TimingConfig config = find_best_timing(baudrate, desired_sample_point);
+	hcan1.Instance = CAN1;
+	hcan1.Init.Prescaler = config.prescaler;
+	hcan1.Init.Mode = CAN_MODE_NORMAL;
+	hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
+	hcan1.Init.TimeSeg1 = (config.tseg1 - 1 ) << 16;
+	hcan1.Init.TimeSeg2 = (config.tseg2 - 1 ) << 20;
+	hcan1.Init.TimeTriggeredMode = DISABLE;
+	hcan1.Init.AutoBusOff = DISABLE;
+	hcan1.Init.AutoWakeUp = DISABLE;
+	hcan1.Init.AutoRetransmission = DISABLE;
+	hcan1.Init.ReceiveFifoLocked = DISABLE;
+	hcan1.Init.TransmitFifoPriority = DISABLE;
+	if (HAL_CAN_Init(&hcan1) != HAL_OK)
+	{
+		Error_Handler();
+	}
 }
 uint8_t SendCanConfigFilter(uint8_t *data){
 
 }
+/*
+ * Function: find_best_timing
+ * ---------------------------
+ * Tìm cấu hình CAN tốt nhất (prescaler, tseg1, tseg2) để đạt được baudrate mong muốn
+ * và sample point gần với giá trị yêu cầu nhất (dưới dạng fixed-point).
+ *
+ * Input:
+ *   - baudrate: Tốc độ truyền CAN mong muốn (bit/s)
+ *   - desired_sample_point_scaled: Sample point mong muốn đã nhân với 1000
+ *       (ví dụ: 0.875 → truyền vào 875)
+ *
+ * Output:
+ *   - Trả về cấu trúc CAN_TimingConfig với cấu hình tốt nhất đã tìm được
+ *
+ * Sequence:
+ *   [1] Duyệt tổng số Time Quanta (TQ) từ 8 đến 25 (theo chuẩn CAN)
+ *   [2] Với mỗi giá trị tq_total:
+ *       [2.1] Kiểm tra xem tq_total có chia hết (PCLK1 / baudrate) không
+ *             → Nếu không chia hết thì bỏ qua
+ *       [2.2] Tính prescaler: prescaler = (PCLK1 / baudrate) / tq_total
+ *       [2.3] Duyệt các cặp giá trị tseg1 (1..16) và tseg2 (1..8):
+ *             [2.3.1] Nếu (1 + tseg1 + tseg2) == tq_total:
+ *                 - Tính sample point thực tế: actual_sp = (1 + tseg1) / tq_total
+ *                 - Chuyển actual_sp thành fixed-point: actual_sp_scaled = actual_sp * 1000
+ *                 - So sánh sai số với desired_sample_point_scaled
+ *                 - Nếu sai số nhỏ hơn trước đó → lưu lại cấu hình tốt nhất
+ *   [3] Trả về cấu hình có sai số nhỏ nhất với sample point mong muốn
+ */
+CAN_TimingConfig find_best_timing(uint32_t baudrate, uint16_t desired_sample_point_scaled)
+{
+    CAN_TimingConfig best_config = {0};
+    best_config.sample_point_error = FLT_MAX;
 
+    for (int tq_total = 8; tq_total <= 25; tq_total++) {
+        if ((HAL_RCC_GetPCLK1Freq() / baudrate) % tq_total != 0)
+            continue;
+
+        int prescaler = (HAL_RCC_GetPCLK1Freq() / baudrate) / tq_total;
+
+        for (int tseg1 = 1; tseg1 <= 16; tseg1++) {
+            for (int tseg2 = 1; tseg2 <= 8; tseg2++) {
+                if (1 + tseg1 + tseg2 != tq_total)
+                    continue;
+
+                float actual_sp = (1.0f + tseg1) / tq_total;
+                uint16_t actual_sp_scaled = (uint16_t)(actual_sp * SAMPLE_POINT_SCALE);
+
+                float error = fabsf((float)(actual_sp_scaled - desired_sample_point_scaled) / SAMPLE_POINT_SCALE);
+
+                if (error < best_config.sample_point_error) {
+                    best_config.tq_total = tq_total;
+                    best_config.prescaler = prescaler;
+                    best_config.tseg1 = tseg1;
+                    best_config.tseg2 = tseg2;
+                    best_config.actual_sample_point = actual_sp;
+                    best_config.sample_point_error = error;
+                }
+            }
+        }
+    }
+
+    return best_config;
+}
 
 
 uint8_t SendCanMessage(uint8_t *data){
@@ -193,7 +295,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_CAN1_Init();
+  //MX_CAN1_Init();
   MX_USB_OTG_FS_PCD_Init();
   MX_UART5_Init();
   MX_I2C1_Init();
