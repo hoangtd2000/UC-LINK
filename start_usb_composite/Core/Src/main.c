@@ -85,6 +85,7 @@ void SystemClock_Config(void);
 void Process_HID_Frames(void);
 void CanTx_init(uint32_t id, uint8_t dlc, uint8_t *data);
 void CanRx_init(void);
+void CanRx_FilterRange(uint32_t start_id, uint32_t end_id, uint8_t is_extended);
 
 uint8_t SendCanConfig(uint8_t *data);
 uint8_t SendCanMessage(uint8_t *data);
@@ -123,8 +124,10 @@ uint8_t SendCanConfigConnect(uint8_t *data){
 	  HAL_TIM_Base_Start(&htim5);
 	  HAL_TIM_Base_Start_IT(&htim4);
 	  SendCanConfigBaud(data);
+	  SendCanConfigFilter(data);
 	  HAL_CAN_Start(&hcan1);
-	  CanRx_init();
+
+	  //CanRx_init();
 }
 uint8_t SendCanConfigDisconnect(uint8_t *data){
 	  HAL_TIM_Base_Stop(&htim5);
@@ -138,7 +141,9 @@ uint8_t SendCanConfigDisconnect(uint8_t *data){
 }
 uint8_t SendCanConfigBaud(uint8_t *data){
 	uint32_t baudrate = ((data[2] << 8) | data[1]) * 1000;
-	uint16_t desired_sample_point = 875;
+
+	//uint16_t desired_sample_point = 875;
+	uint16_t desired_sample_point = (data[4] << 8) | data[3];
     CAN_TimingConfig config = find_best_timing(baudrate, desired_sample_point);
 	hcan1.Instance = CAN1;
 	hcan1.Init.Prescaler = config.prescaler;
@@ -158,7 +163,9 @@ uint8_t SendCanConfigBaud(uint8_t *data){
 	}
 }
 uint8_t SendCanConfigFilter(uint8_t *data){
-
+	uint32_t start_id =  (data[9] << 24 ) | (data[8] << 16 ) | (data[7] << 8 ) | data[6];
+	uint32_t end_id = (data[13] << 24 ) | (data[12] << 16 ) | (data[11] << 8 ) | data[10];
+	CanRx_FilterRange(start_id, end_id, data[5]);
 }
 /*
  * Function: find_best_timing
@@ -262,6 +269,59 @@ void CanRx_init(void){
 		HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig);
 		HAL_CAN_ActivateNotification(&hcan1,CAN_IT_RX_FIFO0_MSG_PENDING);
 }
+void CanRx_FilterRange(uint32_t start_id, uint32_t end_id, uint8_t is_extended)
+{
+    uint32_t range = end_id - start_id + 1;
+
+    // Kiểm tra range có phải là lũy thừa của 2
+    if ((range & (range - 1)) != 0) {
+        return; // Không phải lũy thừa của 2
+    }
+
+    uint32_t mask, id_filter;
+
+    if (is_extended == 0) {
+        // Standard ID (11-bit)
+        if (start_id > 0x7FF || end_id > 0x7FF) return;
+
+        mask = 0x7FF & ~(range - 1);
+
+        if ((start_id & ~mask) != 0) return;
+
+        id_filter = start_id << 5;
+        mask <<= 5;
+
+        sFilterConfig.FilterIdHigh = (uint16_t)(id_filter);
+        sFilterConfig.FilterIdLow  = 0x0000;
+        sFilterConfig.FilterMaskIdHigh = (uint16_t)(mask);
+        sFilterConfig.FilterMaskIdLow  = 0x0000;
+    } else {
+        // Extended ID (29-bit)
+        if (start_id > 0x1FFFFFFF || end_id > 0x1FFFFFFF) return;
+
+        mask = 0x1FFFFFFF & ~(range - 1);
+
+        if ((start_id & ~mask) != 0) return;
+
+        id_filter = (start_id << 3) | (1 << 2);  // IDE bit = 1 in ID field
+        mask = (mask << 3) | (1 << 2);           // Mask includes IDE match
+
+        sFilterConfig.FilterIdHigh = (uint16_t)(id_filter >> 16);
+        sFilterConfig.FilterIdLow  = (uint16_t)(id_filter & 0xFFFF);
+        sFilterConfig.FilterMaskIdHigh = (uint16_t)(mask >> 16);
+        sFilterConfig.FilterMaskIdLow  = (uint16_t)(mask & 0xFFFF);
+    }
+
+    sFilterConfig.FilterBank = 0;
+    sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+    sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+    sFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
+    sFilterConfig.FilterActivation = ENABLE;
+
+    HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig);
+    HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
+}
+
 
 /* USER CODE END 0 */
 
@@ -395,17 +455,9 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
       // HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7); // báo nhận
         // Byte 0: CMD
         usbFrame[0] = 0x03;
-
         // Byte 1: DLC (4-bit high), FrameType (4-bit low)
         uint8_t dlc = RxHeader.DLC & 0x0F;
-        uint8_t frameType = 0;
-        if (RxHeader.IDE == CAN_ID_EXT)
-            {frameType = 8;}
-//        else if (RxHeader.RTR == CAN_RTR_REMOTE)
-//            frameType = 2;
-
-        usbFrame[1] = (dlc << 4) | (frameType & 0x0F);
-        //usbFrame[1] = (dlc << 4) | (RxHeader.IDE & 0x0F);
+        usbFrame[1] = (dlc << 4) | (RxHeader.IDE & 0x0F);
 
         // Byte 2~5: CAN ID (big-endian)
         uint32_t canId = (RxHeader.IDE == CAN_ID_EXT) ? RxHeader.ExtId : RxHeader.StdId;
