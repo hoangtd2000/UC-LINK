@@ -119,6 +119,7 @@ uint8_t SendCanConfig(uint8_t *data){
 		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7);
 		break;
 	}
+	return 1;
 }
 uint8_t SendCanConfigConnect(uint8_t *data){
 	  HAL_TIM_Base_Start(&htim5);
@@ -128,6 +129,7 @@ uint8_t SendCanConfigConnect(uint8_t *data){
 	  HAL_CAN_Start(&hcan1);
 
 	  //CanRx_init();
+	  return 1;
 }
 uint8_t SendCanConfigDisconnect(uint8_t *data){
 	  HAL_TIM_Base_Stop(&htim5);
@@ -137,6 +139,7 @@ uint8_t SendCanConfigDisconnect(uint8_t *data){
 	     Error_Handler();
 	   }
 	  HAL_CAN_Stop(&hcan1);
+	  return 1;
 
 }
 uint8_t SendCanConfigBaud(uint8_t *data){
@@ -161,11 +164,13 @@ uint8_t SendCanConfigBaud(uint8_t *data){
 	{
 		Error_Handler();
 	}
+	return 1;
 }
 uint8_t SendCanConfigFilter(uint8_t *data){
 	uint32_t start_id =  (data[9] << 24 ) | (data[8] << 16 ) | (data[7] << 8 ) | data[6];
 	uint32_t end_id = (data[13] << 24 ) | (data[12] << 16 ) | (data[11] << 8 ) | data[10];
 	CanRx_FilterRange(start_id, end_id, data[5]);
+	return 1;
 }
 /*
  * Function: find_best_timing
@@ -235,6 +240,7 @@ CAN_TimingConfig find_best_timing(uint32_t baudrate, uint16_t desired_sample_poi
 uint8_t SendCanMessage(uint8_t *data){
 	uint32_t id = (data[1]<< 24) |(data[2]<< 16) |(data[3]<< 8) | data[4];
 	CanTx_init(id, data[5], &data[6]);
+	return 1;
 }
 
 void CanTx_init(uint32_t id, uint8_t DlcAndType, uint8_t *data){
@@ -448,10 +454,10 @@ void SystemClock_Config(void)
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-    memset(usbFrame, 0, sizeof(usbFrame));
-        uint32_t timestemp = __HAL_TIM_GET_COUNTER(&htim5);
+    //memset(usbFrame, 0, sizeof(usbFrame));
     if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, &usbFrame[6]) == HAL_OK)
     {
+        uint32_t timestemp = __HAL_TIM_GET_COUNTER(&htim5);
       // HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7); // báo nhận
         // Byte 0: CMD
         usbFrame[0] = 0x03;

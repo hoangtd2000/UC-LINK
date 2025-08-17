@@ -23,9 +23,7 @@
 #include "usbd_cdc_acm_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-extern UART_HandleTypeDef huart5;
-extern TIM_HandleTypeDef htim1;
-extern TIM_HandleTypeDef htim2;
+#include "usbd_hid_custom_if.h"
 //#include "usart.h"
 //#include "tim.h"
 /* USER CODE END INCLUDE */
@@ -36,8 +34,13 @@ extern TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
-
+extern UART_HandleTypeDef huart5;
+extern TIM_HandleTypeDef htim1;
+extern TIM_HandleTypeDef htim2;
+extern HID_FrameFIFO_t hid_frame_fifo_receive;
+extern CAN_HandleTypeDef hcan1;
+extern TIM_HandleTypeDef htim4;
+extern TIM_HandleTypeDef htim5;
 /* USER CODE END PV */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
@@ -120,6 +123,7 @@ uint8_t CDC_RX_Buffer[NUMBER_OF_CDC][CDC_RX_BUFFER_SIZE] = {0};
 uint32_t CDC_RX_WriteIndex[NUMBER_OF_CDC] = {0};
 uint32_t CDC_RX_ReadIndex[NUMBER_OF_CDC] = {0};
 volatile uint8_t uart_tx_busy[NUMBER_OF_CDC] = {0};
+static uint8_t process_sendframe[HID_FRAME_BUFFER_SIZE] = {0};
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -542,69 +546,121 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
   uart_tx_busy[ch] = 0;
 }
 
+void ProcessCDC_RX(void) {
+    for (uint8_t i = 0; i < NUMBER_OF_CDC; i++) {
+        if (CDC_RX_ReadIndex[i] != CDC_RX_WriteIndex[i]) {
+            uint32_t buffptr = CDC_RX_ReadIndex[i];
+            uint32_t buffsize = (CDC_RX_ReadIndex[i] > CDC_RX_WriteIndex[i]) ?
+                                (CDC_RX_BUFFER_SIZE - CDC_RX_ReadIndex[i]) :
+                                (CDC_RX_WriteIndex[i] - CDC_RX_ReadIndex[i]);
+
+            if (buffsize > 64) buffsize = 64;
+
+            HAL_UART_Transmit(CDC_CH_To_UART_Handle(i), &CDC_RX_Buffer[i][buffptr], buffsize, HAL_MAX_DELAY);
+
+            CDC_RX_ReadIndex[i] += buffsize;
+            if (CDC_RX_ReadIndex[i] >= CDC_RX_BUFFER_SIZE)
+                CDC_RX_ReadIndex[i] = 0;
+        }
+    }
+}
+
+void ProcessCDC_TX(void) {
+    for (uint8_t i = 0; i < NUMBER_OF_CDC; i++) {
+        if (Read_Index[i] != Write_Index[i]) {
+            uint32_t buffptr = Read_Index[i];
+            uint32_t buffsize = (Read_Index[i] > Write_Index[i]) ?
+                                (APP_TX_DATA_SIZE - Read_Index[i]) :
+                                (Write_Index[i] - Read_Index[i]);
+
+            USBD_CDC_SetTxBuffer(i, &hUsbDevice, &TX_Buffer[i][buffptr], buffsize);
+
+            if (USBD_CDC_TransmitPacket(i, &hUsbDevice) == USBD_OK) {
+                Read_Index[i] += buffsize;
+                if (Read_Index[i] == APP_RX_DATA_SIZE)
+                    Read_Index[i] = 0;
+            }
+        }
+    }
+}
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	if (htim == &htim2)
-	{
-	  for (uint8_t i = 0; i < NUMBER_OF_CDC; i++)
-	  {
-	    if (CDC_RX_ReadIndex[i] != CDC_RX_WriteIndex[i])
-	    {
-	      uint32_t buffptr = CDC_RX_ReadIndex[i];
-	      uint32_t buffsize;
-
-	      if (CDC_RX_ReadIndex[i] > CDC_RX_WriteIndex[i])
-	        buffsize = CDC_RX_BUFFER_SIZE - CDC_RX_ReadIndex[i];
-	      else
-	        buffsize = CDC_RX_WriteIndex[i] - CDC_RX_ReadIndex[i];
-
-	      // Chặn kích thước nếu quá lớn (optional)
-	      if (buffsize > 64) buffsize = 64;
-
-	      HAL_UART_Transmit(CDC_CH_To_UART_Handle(i), &CDC_RX_Buffer[i][buffptr], buffsize, HAL_MAX_DELAY);
-
-	      CDC_RX_ReadIndex[i] += buffsize;
-	      if (CDC_RX_ReadIndex[i] >= CDC_RX_BUFFER_SIZE)
-	        CDC_RX_ReadIndex[i] = 0;
-	    }
-	  }
-	}
-
-if (htim == &htim1){
-  for (uint8_t i = 0; i < NUMBER_OF_CDC; i++)
-  {
-    uint32_t buffptr;
-    uint32_t buffsize;
-
-    if (Read_Index[i] != Write_Index[i])
-    {
-      if (Read_Index[i] > Write_Index[i]) /* Rollback */
-      {
-        buffsize = APP_TX_DATA_SIZE - Read_Index[i];
-      }
-      else
-      {
-        buffsize = Write_Index[i] - Read_Index[i];
-      }
-
-      buffptr = Read_Index[i];
-
-      USBD_CDC_SetTxBuffer(i, &hUsbDevice, &TX_Buffer[i][buffptr], buffsize);
-
-      if (USBD_CDC_TransmitPacket(i, &hUsbDevice) == USBD_OK)
-      {
-        Read_Index[i] += buffsize;
-        if (Read_Index[i] == APP_RX_DATA_SIZE)
-        {
-          Read_Index[i] = 0;
-        }
-      }
+    if (htim == &htim2)
+        ProcessCDC_RX();
+    else if (htim == &htim1)
+        ProcessCDC_TX();
+    else if((htim == &htim4)  && (HID_Frame_Read(&hid_frame_fifo_receive,process_sendframe))){
+    		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_6);
+    	USBD_CUSTOM_HID_SendReport(&hUsbDevice,process_sendframe, HID_FRAME_SIZE);
     }
-  }
-	}
-
 }
+
+//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+//{
+//	if (htim == &htim2)
+//	{
+//	  for (uint8_t i = 0; i < NUMBER_OF_CDC; i++)
+//	  {
+//	    if (CDC_RX_ReadIndex[i] != CDC_RX_WriteIndex[i])
+//	    {
+//	      uint32_t buffptr = CDC_RX_ReadIndex[i];
+//	      uint32_t buffsize;
+//
+//	      if (CDC_RX_ReadIndex[i] > CDC_RX_WriteIndex[i])
+//	        buffsize = CDC_RX_BUFFER_SIZE - CDC_RX_ReadIndex[i];
+//	      else
+//	        buffsize = CDC_RX_WriteIndex[i] - CDC_RX_ReadIndex[i];
+//
+//	      // Chặn kích thước nếu quá lớn (optional)
+//	      if (buffsize > 64) buffsize = 64;
+//
+//	      HAL_UART_Transmit(CDC_CH_To_UART_Handle(i), &CDC_RX_Buffer[i][buffptr], buffsize, HAL_MAX_DELAY);
+//
+//	      CDC_RX_ReadIndex[i] += buffsize;
+//	      if (CDC_RX_ReadIndex[i] >= CDC_RX_BUFFER_SIZE)
+//	        CDC_RX_ReadIndex[i] = 0;
+//	    }
+//	  }
+//	}
+//
+//if (htim == &htim1){
+//  for (uint8_t i = 0; i < NUMBER_OF_CDC; i++)
+//  {
+//    uint32_t buffptr;
+//    uint32_t buffsize;
+//
+//    if (Read_Index[i] != Write_Index[i])
+//    {
+//      if (Read_Index[i] > Write_Index[i]) /* Rollback */
+//      {
+//        buffsize = APP_TX_DATA_SIZE - Read_Index[i];
+//      }
+//      else
+//      {
+//        buffsize = Write_Index[i] - Read_Index[i];
+//      }
+//
+//      buffptr = Read_Index[i];
+//
+//      USBD_CDC_SetTxBuffer(i, &hUsbDevice, &TX_Buffer[i][buffptr], buffsize);
+//
+//      if (USBD_CDC_TransmitPacket(i, &hUsbDevice) == USBD_OK)
+//      {
+//        Read_Index[i] += buffsize;
+//        if (Read_Index[i] == APP_RX_DATA_SIZE)
+//        {
+//          Read_Index[i] = 0;
+//        }
+//      }
+//    }
+//  }
+//	}
+//
+//
+//
+//
+//}
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {

@@ -62,14 +62,8 @@
 /* Private variables ---------------------------------------------------------*/
 uint8_t buffer[0x40];
 
-
-typedef struct {
-    uint8_t frame[HID_FRAME_BUFFER_SIZE][HID_FRAME_SIZE];
-    volatile uint8_t head;
-    volatile uint8_t tail;
-} HID_FrameFIFO_t;
-
 HID_FrameFIFO_t hid_frame_fifo;
+
 /* USER CODE END PV */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
@@ -242,7 +236,7 @@ static int8_t CUSTOM_HID_DeInit(void)
 static int8_t CUSTOM_HID_OutEvent(uint8_t *data, uint16_t len)
 {
   /* USER CODE BEGIN 6 */
-	HID_Frame_Write(data, len);
+	HID_Frame_Write(&hid_frame_fifo,data);
   //memcpy(buffer, state, 0x40);
   //USBD_CUSTOM_HID_SendReport(&hUsbDevice, (uint8_t *)buffer, 0x40);
   return (USBD_OK);
@@ -251,24 +245,44 @@ static int8_t CUSTOM_HID_OutEvent(uint8_t *data, uint16_t len)
 
 /* USER CODE BEGIN 7 */
 //Ghi từng gói vào FIFO
-void HID_Frame_Write(uint8_t *data, uint16_t len) {
-    if (len > HID_FRAME_SIZE) return;
+//void HID_Frame_Write(uint8_t *data, uint16_t len) {
+//    if (len > HID_FRAME_SIZE) return;
+//
+//    uint8_t next_head = (hid_frame_fifo.head + 1) % HID_FRAME_BUFFER_SIZE;
+//    if (next_head != hid_frame_fifo.tail) {
+//        memcpy(hid_frame_fifo.frame[hid_frame_fifo.head], data, len);
+//        hid_frame_fifo.head = next_head;
+//    } else {
+//        // FIFO đầy → có thể ghi log hoặc bỏ qua
+//    }
+//}
 
-    uint8_t next_head = (hid_frame_fifo.head + 1) % HID_FRAME_BUFFER_SIZE;
-    if (next_head != hid_frame_fifo.tail) {
-        memcpy(hid_frame_fifo.frame[hid_frame_fifo.head], data, len);
-        hid_frame_fifo.head = next_head;
-    } else {
-        // FIFO đầy → có thể ghi log hoặc bỏ qua
+
+uint8_t HID_Frame_Write(HID_FrameFIFO_t *fifo, uint8_t *data)
+{
+    uint8_t nextHead = (fifo->head + 1) % HID_FRAME_BUFFER_SIZE;
+
+    // Kiểm tra tràn bộ đệm
+    if (nextHead == fifo->tail) {
+        // Buffer đầy
+        return 0;
     }
+
+    memcpy(fifo->frame[fifo->head], data, HID_FRAME_SIZE);
+    fifo->head = nextHead;
+    return 1;
 }
-int HID_Frame_Read(uint8_t *dest_buf) {
-    if (hid_frame_fifo.head == hid_frame_fifo.tail) {
+
+
+
+
+uint8_t HID_Frame_Read(HID_FrameFIFO_t *fifo, uint8_t *dest_buf) {
+    if (fifo->head == fifo->tail) {
         return 0;  // Không có frame
     }
 
-    memcpy(dest_buf, hid_frame_fifo.frame[hid_frame_fifo.tail], HID_FRAME_SIZE);
-    hid_frame_fifo.tail = (hid_frame_fifo.tail + 1) % HID_FRAME_BUFFER_SIZE;
+    memcpy(dest_buf, fifo->frame[fifo->tail], HID_FRAME_SIZE);
+    fifo->tail = (fifo->tail + 1) % HID_FRAME_BUFFER_SIZE;
     return 1;
 }
 
