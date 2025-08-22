@@ -80,7 +80,7 @@
 
 /* USER CODE BEGIN EXPORTED_DEFINES */
 #define HID_FRAME_SIZE        64
-#define HID_FRAME_BUFFER_SIZE 32
+#define HID_FRAME_BUFFER_SIZE 256
 /* USER CODE END EXPORTED_DEFINES */
 
 /**
@@ -143,6 +143,10 @@ typedef struct {
 uint8_t HID_Frame_Write(HID_FrameFIFO_t *fifo, uint8_t *data);
 
 uint8_t HID_Frame_Read(HID_FrameFIFO_t *fifo, uint8_t *dest_buf);
+uint8_t HID_Frame_ReadAndSend(HID_FrameFIFO_t *fifo, uint8_t *dest_buf);
+
+uint8_t HID_Frame_ReadAndSendCan(HID_FrameFIFO_t *fifo);
+extern uint8_t (*FuncSendCanArray[3])(uint8_t *data);
 //int HID_Frame_Read(uint8_t *dest_buf);
 /* USER CODE END EXPORTED_FUNCTIONS */
 

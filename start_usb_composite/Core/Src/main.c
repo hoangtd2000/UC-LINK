@@ -66,6 +66,9 @@ extern HID_FrameFIFO_t hid_frame_fifo;
 HID_FrameFIFO_t hid_frame_fifo_receive;
 uint32_t apb1_freq = 0;
 
+extern uint8_t process_sendframe[HID_FRAME_BUFFER_SIZE];
+
+
 #define SAMPLE_POINT_SCALE 1000U
 typedef struct {
     int tq_total;
@@ -93,8 +96,8 @@ uint8_t SendCanConfigConnect(uint8_t *data);
 uint8_t SendCanConfigDisconnect(uint8_t *data);
 uint8_t SendCanConfigBaud(uint8_t *data);
 uint8_t SendCanConfigFilter(uint8_t *data);
-uint8_t (*FuncSendCanArray[3])(uint8_t *data) = {0,SendCanConfig,SendCanMessage};
 CAN_TimingConfig find_best_timing(uint32_t baudrate, uint16_t desired_sample_point);
+uint8_t (*FuncSendCanArray[3])(uint8_t *data) = {0,SendCanConfig,SendCanMessage};
 
 /* USER CODE END PFP */
 
@@ -325,7 +328,7 @@ void CanRx_FilterRange(uint32_t start_id, uint32_t end_id, uint8_t is_extended)
     sFilterConfig.FilterActivation = ENABLE;
 
     HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig);
-    HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
+    HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO0_OVERRUN);
 }
 
 
@@ -383,7 +386,15 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  Process_HID_Frames();
+	  //Process_HID_Frames();
+
+
+
+	  HID_Frame_ReadAndSendCan(&hid_frame_fifo);
+	  HID_Frame_ReadAndSend(&hid_frame_fifo_receive, process_sendframe);
+//	  uint8_t status = HID_Frame_ReadAndSend(&hid_frame_fifo_receive, process_sendframe);
+//	          if(status == 2) GPIOA->ODR ^= (1 << 7);
+
 //	  if(HID_Frame_Read(&hid_frame_fifo_receive,process_sendframe)){
 //	      	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_6);
 //	      	USBD_CUSTOM_HID_SendReport(&hUsbDevice,process_sendframe, HID_FRAME_SIZE);
@@ -452,34 +463,38 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
+//uint32_t timestemp = 0 ;
+
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
     //memset(usbFrame, 0, sizeof(usbFrame));
     if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, &usbFrame[6]) == HAL_OK)
     {
-        uint32_t timestemp = __HAL_TIM_GET_COUNTER(&htim5);
-      // HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_7); // báo nhận
+    	RxHeader.Timestamp = TIM5->CNT;
         // Byte 0: CMD
         usbFrame[0] = 0x03;
         // Byte 1: DLC (4-bit high), FrameType (4-bit low)
-        uint8_t dlc = RxHeader.DLC & 0x0F;
-        usbFrame[1] = (dlc << 4) | (RxHeader.IDE & 0x0F);
-
+        usbFrame[1] = (RxHeader.DLC << 4) | (RxHeader.IDE & 0x0F);
         // Byte 2~5: CAN ID (big-endian)
-        uint32_t canId = (RxHeader.IDE == CAN_ID_EXT) ? RxHeader.ExtId : RxHeader.StdId;
+        uint32_t canId = (RxHeader.IDE == CAN_ID_STD) ? RxHeader.StdId : RxHeader.ExtId;
         usbFrame[2] = (canId >> 24) & 0xFF;
         usbFrame[3] = (canId >> 16) & 0xFF;
         usbFrame[4] = (canId >> 8) & 0xFF;
         usbFrame[5] = canId & 0xFF;
-        usbFrame[14] = (timestemp >> 24) & 0xFF;
-        usbFrame[15] = (timestemp >> 16) & 0xFF;
-        usbFrame[16]= (timestemp >> 8) & 0xFF;
-        usbFrame[17] = (timestemp ) & 0xFF;
+
+		usbFrame[14] = (RxHeader.Timestamp >> 24) & 0xFF;
+		usbFrame[15] = (RxHeader.Timestamp >> 16) & 0xFF;
+		usbFrame[16]= (RxHeader.Timestamp >> 8) & 0xFF;
+		usbFrame[17] = (RxHeader.Timestamp ) & 0xFF;
         HID_Frame_Write(&hid_frame_fifo_receive,usbFrame);
-        //USBD_CUSTOM_HID_SendReport(&hUsbDevice,usbFrame, HID_FRAME_SIZE);
     }
 }
 
+
+void HAL_CAN_RxFifo0OverrunCallback(CAN_HandleTypeDef *hcan){
+//	check_overun = 1 ;
+	 GPIOA->ODR ^= (1 << 7);
+}
 
 /* USER CODE END 4 */
 

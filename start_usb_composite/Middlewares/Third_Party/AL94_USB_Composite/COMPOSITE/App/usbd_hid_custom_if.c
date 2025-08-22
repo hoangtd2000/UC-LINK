@@ -265,6 +265,7 @@ uint8_t HID_Frame_Write(HID_FrameFIFO_t *fifo, uint8_t *data)
     // Kiểm tra tràn bộ đệm
     if (nextHead == fifo->tail) {
         // Buffer đầy
+    	GPIOA->ODR ^= (1 << 7);
         return 0;
     }
 
@@ -286,6 +287,65 @@ uint8_t HID_Frame_Read(HID_FrameFIFO_t *fifo, uint8_t *dest_buf) {
     return 1;
 }
 
+
+uint8_t HID_Frame_ReadAndSend(HID_FrameFIFO_t *fifo, uint8_t *dest_buf)
+{
+    // Kiểm tra có frame không
+    if(fifo->head == fifo->tail)
+        return 0;  // FIFO rỗng
+
+    // Copy frame ra buffer tạm
+    memcpy(dest_buf, fifo->frame[fifo->tail], HID_FRAME_SIZE);
+
+    // Thử gửi USB
+    if(USBD_CUSTOM_HID_SendReport(&hUsbDevice, dest_buf, HID_FRAME_SIZE) == USBD_OK)
+    {
+        // Gửi thành công → đánh dấu frame đã đọc
+        fifo->tail = (fifo->tail + 1) % HID_FRAME_BUFFER_SIZE;
+        return 1;
+    }
+    else
+    {
+        // USB bận → không thay đổi tail, frame sẽ gửi lại lần sau
+        return 2;  // Trạng thái gửi chưa thành công
+    }
+}
+
+/**
+ * HID_Frame_ReadAndSendCan
+ *  - Đọc frame từ FIFO
+ *  - Gọi hàm gửi CAN tương ứng
+ *  - Nếu gửi thành công → đánh dấu frame đã đọc (tail tiến)
+ *  - Nếu gửi không thành công → tail giữ nguyên, sẽ gửi lại lần sau
+ *
+ * Trả về:
+ *  0: FIFO rỗng
+ *  1: frame đã gửi thành công
+ *  2: frame chưa gửi (CAN bận hoặc lỗi)
+ */
+uint8_t HID_Frame_ReadAndSendCan(HID_FrameFIFO_t *fifo)
+{
+    uint8_t frame[HID_FRAME_SIZE];
+
+    // Kiểm tra FIFO rỗng
+    if(fifo->head == fifo->tail)
+        return 0;
+
+    // Copy frame ra buffer tạm
+    memcpy(frame, fifo->frame[fifo->tail], HID_FRAME_SIZE);
+
+    // Gọi hàm gửi CAN tương ứng
+    uint8_t sendResult = FuncSendCanArray[frame[0]](frame);
+
+    if(sendResult) {
+        // Gửi thành công → đánh dấu đã đọc
+        fifo->tail = (fifo->tail + 1) % HID_FRAME_BUFFER_SIZE;
+        return 1;
+    } else {
+        // Gửi chưa thành công → tail giữ nguyên
+        return 2;
+    }
+}
 /**
   * @brief  Send the report to the Host
   * @param  report: The report to be sent
