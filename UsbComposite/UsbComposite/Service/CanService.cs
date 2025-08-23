@@ -12,8 +12,8 @@ namespace UsbComposite.Service
     {
         private const int VendorId = 0x0078;
         private const int ProductId = 0x2000;
-        private const int PacketSize = 64;
-        private const int HID_REPORT_PAYLOAD_SIZE = 64; // Đổi tên để rõ ràng hơn là kích thước payload
+        private const int PacketSize = 32;
+        private const int HID_REPORT_PAYLOAD_SIZE = 32; // Đổi tên để rõ ràng hơn là kích thước payload
 
         private HidDevice _device;
         private HidStream _stream;

@@ -58,6 +58,9 @@ default.size.stdout \
 OBJDUMP_LIST += \
 start_usb_composite.list \
 
+OBJCOPY_HEX += \
+start_usb_composite.hex \
+
 
 # All Target
 all: main-build
@@ -66,8 +69,8 @@ all: main-build
 main-build: start_usb_composite.elf secondary-outputs
 
 # Tool invocations
-start_usb_composite.elf start_usb_composite.map: $(OBJS) $(USER_OBJS) D:\1_Product_test\UC-LINK\start_usb_composite\STM32F407VETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "start_usb_composite.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"D:\1_Product_test\UC-LINK\start_usb_composite\STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="start_usb_composite.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+start_usb_composite.elf start_usb_composite.map: $(OBJS) $(USER_OBJS) D:\Learn\1_wpf\UC-LINK\start_usb_composite\STM32F407VETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "start_usb_composite.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"D:\Learn\1_wpf\UC-LINK\start_usb_composite\STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="start_usb_composite.map" -Wl,--cref -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -81,12 +84,17 @@ start_usb_composite.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_D
 	@echo 'Finished building: $@'
 	@echo ' '
 
+start_usb_composite.hex: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O ihex $(EXECUTABLES) "start_usb_composite.hex"
+	@echo 'Finished building: $@'
+	@echo ' '
+
 # Other Targets
 clean:
-	-$(RM) default.size.stdout start_usb_composite.elf start_usb_composite.list start_usb_composite.map
+	-$(RM) default.size.stdout start_usb_composite.elf start_usb_composite.hex start_usb_composite.list start_usb_composite.map
 	-@echo ' '
 
-secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
+secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_HEX)
 
 fail-specified-linker-script-missing:
 	@echo 'Error: Cannot find the specified linker script. Check the linker settings in the build configuration.'
