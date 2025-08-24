@@ -60,9 +60,9 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-uint8_t buffer[0x40];
+//uint8_t buffer[0x40];
 
-HID_FrameFIFO_t hid_frame_fifo;
+extern HID_FrameFIFO_t g_HIDFrameFIFO_Receive;
 
 /* USER CODE END PV */
 
@@ -130,10 +130,12 @@ __ALIGN_BEGIN static uint8_t CUSTOM_HID_ReportDesc[USBD_CUSTOM_HID_REPORT_DESC_S
         0x15, 0x00,       //   LOGICAL_MINIMUM (0)
         0x26, 0xff, 0x00, //   LOGICAL_MAXIMUM (255)
         0x75, 0x08,       //   REPORT_SIZE (8)
-        0x95, 0x40,       //   REPORT_COUNT (64)
+        //0x95, 0x40,       //   REPORT_COUNT (64)
+		 0x95, 0x20,       //   REPORT_COUNT (64)
         0x09, 0x01,       //   USAGE (Undefined)
         0x81, 0x02,       //   INPUT (Data,Var,Abs)
-        0x95, 0x40,       //   REPORT_COUNT (64)
+//        0x95, 0x40,       //   REPORT_COUNT (64)
+		 0x95, 0x20,       //   REPORT_COUNT (64)
         0x09, 0x01,       //   USAGE (Undefined)
         0x91, 0x02,       //   OUTPUT (Data,Var,Abs)
         0x95, 0x01,       //   REPORT_COUNT (1)
@@ -236,7 +238,7 @@ static int8_t CUSTOM_HID_DeInit(void)
 static int8_t CUSTOM_HID_OutEvent(uint8_t *data, uint16_t len)
 {
   /* USER CODE BEGIN 6 */
-	HID_Frame_Write(&hid_frame_fifo,data);
+	HID_Frame_Write(&g_HIDFrameFIFO_Receive,data);
   //memcpy(buffer, state, 0x40);
   //USBD_CUSTOM_HID_SendReport(&hUsbDevice, (uint8_t *)buffer, 0x40);
   return (USBD_OK);
@@ -244,48 +246,95 @@ static int8_t CUSTOM_HID_OutEvent(uint8_t *data, uint16_t len)
 }
 
 /* USER CODE BEGIN 7 */
-//Ghi từng gói vào FIFO
-//void HID_Frame_Write(uint8_t *data, uint16_t len) {
-//    if (len > HID_FRAME_SIZE) return;
+
+//uint8_t HID_Frame_Write(HID_FrameFIFO_t *fifo, uint8_t *data)
+//{
+//    uint8_t nextHead = (fifo->head + 1) % HID_FRAME_BUFFER_SIZE;
 //
-//    uint8_t next_head = (hid_frame_fifo.head + 1) % HID_FRAME_BUFFER_SIZE;
-//    if (next_head != hid_frame_fifo.tail) {
-//        memcpy(hid_frame_fifo.frame[hid_frame_fifo.head], data, len);
-//        hid_frame_fifo.head = next_head;
-//    } else {
-//        // FIFO đầy → có thể ghi log hoặc bỏ qua
+//    // Kiểm tra tràn bộ đệm
+//    if (nextHead == fifo->tail) {
+//        // Buffer đầy
+//    	GPIOA->ODR ^= (1 << 7);
+//        return 0;
+//    }
+//
+//    memcpy(fifo->frame[fifo->head], data, HID_FRAME_SIZE);
+//    fifo->head = nextHead;
+//    return 1;
+//}
+//
+//
+//
+//
+//uint8_t HID_Frame_Read(HID_FrameFIFO_t *fifo, uint8_t *dest_buf) {
+//    if (fifo->head == fifo->tail) {
+//        return 0;  // Không có frame
+//    }
+//
+//    memcpy(dest_buf, fifo->frame[fifo->tail], HID_FRAME_SIZE);
+//    fifo->tail = (fifo->tail + 1) % HID_FRAME_BUFFER_SIZE;
+//    return 1;
+//}
+//
+//
+//uint8_t HID_Frame_ReadAndSend(HID_FrameFIFO_t *fifo, uint8_t *dest_buf)
+//{
+//    // Kiểm tra có frame không
+//    if(fifo->head == fifo->tail)
+//        return 0;  // FIFO rỗng
+//
+//    // Copy frame ra buffer tạm
+//    memcpy(dest_buf, fifo->frame[fifo->tail], HID_FRAME_SIZE);
+//
+//    // Thử gửi USB
+//    if(USBD_CUSTOM_HID_SendReport(&hUsbDevice, dest_buf, HID_FRAME_SIZE) == USBD_OK)
+//    {
+//        // Gửi thành công → đánh dấu frame đã đọc
+//        fifo->tail = (fifo->tail + 1) % HID_FRAME_BUFFER_SIZE;
+//        return 1;
+//    }
+//    else
+//    {
+//        // USB bận → không thay đổi tail, frame sẽ gửi lại lần sau
+//        return 2;  // Trạng thái gửi chưa thành công
 //    }
 //}
-
-
-uint8_t HID_Frame_Write(HID_FrameFIFO_t *fifo, uint8_t *data)
-{
-    uint8_t nextHead = (fifo->head + 1) % HID_FRAME_BUFFER_SIZE;
-
-    // Kiểm tra tràn bộ đệm
-    if (nextHead == fifo->tail) {
-        // Buffer đầy
-        return 0;
-    }
-
-    memcpy(fifo->frame[fifo->head], data, HID_FRAME_SIZE);
-    fifo->head = nextHead;
-    return 1;
-}
-
-
-
-
-uint8_t HID_Frame_Read(HID_FrameFIFO_t *fifo, uint8_t *dest_buf) {
-    if (fifo->head == fifo->tail) {
-        return 0;  // Không có frame
-    }
-
-    memcpy(dest_buf, fifo->frame[fifo->tail], HID_FRAME_SIZE);
-    fifo->tail = (fifo->tail + 1) % HID_FRAME_BUFFER_SIZE;
-    return 1;
-}
-
+//
+///**
+// * HID_Frame_ReadAndSendCan
+// *  - Đọc frame từ FIFO
+// *  - Gọi hàm gửi CAN tương ứng
+// *  - Nếu gửi thành công → đánh dấu frame đã đọc (tail tiến)
+// *  - Nếu gửi không thành công → tail giữ nguyên, sẽ gửi lại lần sau
+// *
+// * Trả về:
+// *  0: FIFO rỗng
+// *  1: frame đã gửi thành công
+// *  2: frame chưa gửi (CAN bận hoặc lỗi)
+// */
+//uint8_t HID_Frame_ReadAndSendCan(HID_FrameFIFO_t *fifo)
+//{
+//    uint8_t frame[HID_FRAME_SIZE];
+//
+//    // Kiểm tra FIFO rỗng
+//    if(fifo->head == fifo->tail)
+//        return 0;
+//
+//    // Copy frame ra buffer tạm
+//    memcpy(frame, fifo->frame[fifo->tail], HID_FRAME_SIZE);
+//
+//    // Gọi hàm gửi CAN tương ứng
+//    uint8_t sendResult = FuncSendCanArray[frame[0]](frame);
+//
+//    if(sendResult) {
+//        // Gửi thành công → đánh dấu đã đọc
+//        fifo->tail = (fifo->tail + 1) % HID_FRAME_BUFFER_SIZE;
+//        return 1;
+//    } else {
+//        // Gửi chưa thành công → tail giữ nguyên
+//        return 2;
+//    }
+//}
 /**
   * @brief  Send the report to the Host
   * @param  report: The report to be sent

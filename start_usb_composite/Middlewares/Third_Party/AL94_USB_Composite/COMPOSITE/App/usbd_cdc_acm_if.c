@@ -590,7 +590,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         ProcessCDC_TX();
     else if(htim == &htim4)
     {
-    	Usb2Can_Tranfer(&g_HIDFrameFIFO_Receive);
+    	//Usb2Can_Tranfer(&g_HIDFrameFIFO_Receive);
     }
 }
 

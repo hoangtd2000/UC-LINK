@@ -61,7 +61,7 @@ extern TIM_HandleTypeDef htim5;
 //uint32_t txMailbox;
 //static  uint8_t g_au8UsbFrame[HID_FRAME_SIZE] = {0};
 //extern HID_FrameFIFO_t hid_frame_fifo;
-extern HID_FrameFIFO_t hid_frame_fifo;
+extern HID_FrameFIFO_t g_HIDFrameFIFO_Receive;
 extern HID_FrameFIFO_t g_HIDFrameFIFO_Tranfer;
 //
 //extern uint8_t process_sendframe[HID_FRAME_SIZE];
@@ -363,14 +363,14 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  //MX_CAN1_Init();
+  MX_CAN1_Init();
   MX_USB_OTG_FS_PCD_Init();
   MX_UART5_Init();
   MX_I2C1_Init();
   MX_TIM1_Init();
   MX_TIM2_Init();
-  MX_TIM4_Init();
   MX_TIM5_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
   MX_USB_DEVICE_Init();
   HAL_TIM_Base_Start_IT(&htim4);
@@ -384,6 +384,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  Usb2Can_Tranfer(&g_HIDFrameFIFO_Receive);
 	  Can2Usb_Tranfer(&g_HIDFrameFIFO_Tranfer, g_au8UsbFrameTranfer);
 
   }

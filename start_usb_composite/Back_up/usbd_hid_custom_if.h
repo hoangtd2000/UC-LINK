@@ -61,6 +61,9 @@
 /* USER CODE BEGIN INCLUDE */
 #include "main.h"
 #include "stdint.h"
+#include "usbhid2can.h"
+
+
 /* USER CODE END INCLUDE */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
@@ -79,8 +82,8 @@
   */
 
 /* USER CODE BEGIN EXPORTED_DEFINES */
-#define HID_FRAME_SIZE        64
-#define HID_FRAME_BUFFER_SIZE 8
+//#define HID_FRAME_SIZE        32
+//#define HID_FRAME_BUFFER_SIZE 256
 /* USER CODE END EXPORTED_DEFINES */
 
 /**
@@ -122,11 +125,11 @@
 extern USBD_CUSTOM_HID_ItfTypeDef USBD_CustomHID_fops;
 
 /* USER CODE BEGIN EXPORTED_VARIABLES */
-typedef struct {
-    uint8_t frame[HID_FRAME_BUFFER_SIZE][HID_FRAME_SIZE];
-    volatile uint8_t head;
-    volatile uint8_t tail;
-} HID_FrameFIFO_t;
+//typedef struct {
+//    uint8_t frame[HID_FRAME_BUFFER_SIZE][HID_FRAME_SIZE];
+//    volatile uint8_t head;
+//    volatile uint8_t tail;
+//} HID_FrameFIFO_t;
 /* USER CODE END EXPORTED_VARIABLES */
 
 /**
@@ -140,9 +143,12 @@ typedef struct {
 
 /* USER CODE BEGIN EXPORTED_FUNCTIONS */
 //void HID_Frame_Write(uint8_t *data, uint16_t len);
-uint8_t HID_Frame_Write(HID_FrameFIFO_t *fifo, uint8_t *data);
-
-uint8_t HID_Frame_Read(HID_FrameFIFO_t *fifo, uint8_t *dest_buf);
+//uint8_t HID_Frame_Write(HID_FrameFIFO_t *fifo, uint8_t *data);
+//uint8_t HID_Frame_Read(HID_FrameFIFO_t *fifo, uint8_t *dest_buf);
+//uint8_t HID_Frame_ReadAndSend(HID_FrameFIFO_t *fifo, uint8_t *dest_buf);
+//
+//uint8_t HID_Frame_ReadAndSendCan(HID_FrameFIFO_t *fifo);
+//extern uint8_t (*FuncSendCanArray[3])(uint8_t *data);
 //int HID_Frame_Read(uint8_t *dest_buf);
 /* USER CODE END EXPORTED_FUNCTIONS */
 
