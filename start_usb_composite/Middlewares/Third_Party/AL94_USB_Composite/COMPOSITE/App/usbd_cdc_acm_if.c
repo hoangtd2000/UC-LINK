@@ -24,6 +24,7 @@
 
 /* USER CODE BEGIN INCLUDE */
 #include "usbd_hid_custom_if.h"
+#include "can2usbhid.h"
 //#include "usart.h"
 //#include "tim.h"
 /* USER CODE END INCLUDE */
@@ -38,6 +39,8 @@ extern UART_HandleTypeDef huart5;
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
 extern HID_FrameFIFO_t  g_HIDFrameFIFO_Receive;
+extern HID_FrameFIFO_t g_HIDFrameFIFO_Tranfer;
+extern uint8_t g_au8UsbFrameTranfer[HID_FRAME_SIZE] ;
 
 /* USER CODE END PV */
 
@@ -590,7 +593,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         ProcessCDC_TX();
     else if(htim == &htim4)
     {
-    	//Usb2Can_Tranfer(&g_HIDFrameFIFO_Receive);
+
+    	// Usb2Can_Tranfer(&g_HIDFrameFIFO_Receive);
+    	Can2Usb_Tranfer(&g_HIDFrameFIFO_Tranfer, g_au8UsbFrameTranfer);
     }
 }
 

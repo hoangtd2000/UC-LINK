@@ -91,7 +91,7 @@ typedef union{
 //}CAN_Mesage_t;
 
 
-void CanTx_init(uint32_t id, uint8_t dlc, uint8_t *data);
+uint8_t CanTx_init(uint32_t id, uint8_t dlc, uint8_t *data);
 void CanRx_FilterRange(uint32_t start_id, uint32_t end_id, uint8_t is_extended);
 
 uint8_t SendCanConfig(uint8_t *data);
@@ -110,10 +110,11 @@ extern TIM_HandleTypeDef htim5;
 
 void delay_0_1ms_tim5(void)
 {
-    uint32_t start = __HAL_TIM_GET_COUNTER(&htim5);
-    uint32_t ticks = 50; // 0.1ms / 0.1us = 1000 ticks
+    uint32_t start = TIM5->CNT;//__HAL_TIM_GET_COUNTER(&htim5);
+    uint32_t ticks = 20; // 0.1ms / 0.1us = 1000 ticks
 
-    while((__HAL_TIM_GET_COUNTER(&htim5) - start) < ticks)
+ //   while((__HAL_TIM_GET_COUNTER(&htim5) - start) < ticks)
+    while(((TIM5->CNT) - start) < ticks)
     {
         // chờ đủ số tick
     }
@@ -252,7 +253,9 @@ uint8_t SendCanMessage(uint8_t *data){
 	return 1;
 }
 
-void CanTx_init(uint32_t id, uint8_t DlcAndType, uint8_t *data){
+uint32_t l_u32_GetErrCan= 0;
+
+uint8_t CanTx_init(uint32_t id, uint8_t DlcAndType, uint8_t *data){
 	//uint32_t txMailbox;
     switch(DlcAndType & 0x0F){
     case CAN_ID_EXT:
@@ -270,6 +273,16 @@ void CanTx_init(uint32_t id, uint8_t DlcAndType, uint8_t *data){
 
 	HAL_CAN_AddTxMessage(&hcan1, &g_CanTxHeader, data, &g_u32TxMailbox);
 	delay_0_1ms_tim5();
+	if( l_u32_GetErrCan != HAL_OK){
+		GPIOA->ODR ^= (1 << 7);
+		//HAL_CAN_ResetError( &hcan1 );
+		l_u32_GetErrCan = 0;
+		return HAL_ERROR;
+	}
+	l_u32_GetErrCan = 0;
+
+	GPIOA->ODR ^= (1 << 6);
+	return HAL_OK;
 }
 
 //	HAL_StatusTypeDef status = HAL_CAN_AddTxMessage(&hcan1, &g_CanTxHeader, data, &g_u32TxMailbox);
@@ -325,13 +338,15 @@ void CanTx_init(uint32_t id, uint8_t DlcAndType, uint8_t *data){
 		//GPIOA->ODR ^= (1 << 7);
 
 
-#define INTERNAL_CAN_IT_FLAGS          (  CAN_IT_TX_MAILBOX_EMPTY |\
-                                          CAN_IT_RX_FIFO0_MSG_PENDING |\
+//CAN_IT_TX_MAILBOX_EMPTY
+#define INTERNAL_CAN_IT_FLAGS          (  CAN_IT_RX_FIFO0_MSG_PENDING |\
                                           CAN_IT_ERROR_WARNING |\
                                           CAN_IT_ERROR_PASSIVE |\
                                           CAN_IT_BUSOFF |\
                                           CAN_IT_LAST_ERROR_CODE |\
                                           CAN_IT_ERROR )
+
+
 void CanRx_FilterRange(uint32_t start_id, uint32_t end_id, uint8_t is_extended)
 {
     uint32_t range = end_id - start_id + 1;
@@ -382,8 +397,8 @@ void CanRx_FilterRange(uint32_t start_id, uint32_t end_id, uint8_t is_extended)
     g_CanFilter.FilterActivation = ENABLE;
 
     HAL_CAN_ConfigFilter(&hcan1, &g_CanFilter);
-//    HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_ERROR|  CAN_IT_TX_MAILBOX_EMPTY   );
-    HAL_CAN_ActivateNotification(&hcan1, INTERNAL_CAN_IT_FLAGS   );
+    //HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING );
+    HAL_CAN_ActivateNotification(&hcan1, INTERNAL_CAN_IT_FLAGS);
 }
 
 
@@ -427,9 +442,9 @@ uint8_t HID_Frame_Read(HID_FrameFIFO_t *fifo, uint8_t *dest_buf) {
  */
 
 
-uint32_t l_u32_GetErrCan= 0;
 
-volatile uint32_t l_u32_TxComplete = 0;
+
+//volatile uint32_t l_u32_TxComplete = 0;
 
 uint8_t Usb2Can_Tranfer(HID_FrameFIFO_t *fifo)
 {
@@ -448,13 +463,13 @@ uint8_t Usb2Can_Tranfer(HID_FrameFIFO_t *fifo)
 
     //for(int i = 0 ; i < 2000 ; i++);
 
-    if(l_u32_TxComplete == 2){
-    	GPIOA->ODR ^= (1 << 7); // NG
-    }
-    else if (l_u32_TxComplete == 1){
-    	GPIOA->ODR ^= (1 << 6); // OK
-    }
-    l_u32_TxComplete = 0 ;
+//    if(l_u32_TxComplete == 2){
+//    	GPIOA->ODR ^= (1 << 7); // NG
+//    }
+//    else if (l_u32_TxComplete == 1){
+//    	GPIOA->ODR ^= (1 << 6); // OK
+//    }
+//    l_u32_TxComplete = 0 ;
   //  uint32_t err = HAL_CAN_GetError(&hcan1);
 //    if(l_u32_GetErrCan == HAL_CAN_ERROR_NONE ){//&& l_u32_TxComplete == 0) {
 //  //  if(l_u32_TxComplete == HAL_CAN_ERROR_NONE ){//&& l_u32_TxComplete == 0) {
@@ -475,32 +490,33 @@ uint8_t Usb2Can_Tranfer(HID_FrameFIFO_t *fifo)
 }
 
 
-void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan){
-	//GPIOA->ODR ^= (1 << 7);
-	//l_u32_TxComplete = 0;
-	//l_u32_GetErrCan = HAL_CAN_GetError(&hcan1);
-	l_u32_TxComplete = 1 ;
-}
-void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan){
-	//GPIOA->ODR ^= (1 << 7);
-	//l_u32_TxComplete = 0;
-	//l_u32_GetErrCan = HAL_CAN_GetError(&hcan1);
-	l_u32_TxComplete = 1 ;
-
-}
-void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan){
-	//GPIOA->ODR ^= (1 << 7);
-	//l_u32_TxComplete = 0;
-//	l_u32_GetErrCan = HAL_CAN_GetError(&hcan1);
-	l_u32_TxComplete = 1 ;
-
-}
-void HAL_CAN_TxMailbox0AbortCallback(CAN_HandleTypeDef *hcan){
-	l_u32_TxComplete = 2 ;
-}
+//void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan){
+//	//GPIOA->ODR ^= (1 << 7);
+//	//l_u32_TxComplete = 0;
+//	//l_u32_GetErrCan = HAL_CAN_GetError(&hcan1);
+//	l_u32_TxComplete = 1 ;
+//}
+//void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan){
+//	//GPIOA->ODR ^= (1 << 7);
+//	//l_u32_TxComplete = 0;
+//	//l_u32_GetErrCan = HAL_CAN_GetError(&hcan1);
+//	l_u32_TxComplete = 1 ;
+//
+//}
+//void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan){
+//	//GPIOA->ODR ^= (1 << 7);
+//	//l_u32_TxComplete = 0;
+////	l_u32_GetErrCan = HAL_CAN_GetError(&hcan1);
+//	l_u32_TxComplete = 1 ;
+//
+//}
+//void HAL_CAN_TxMailbox0AbortCallback(CAN_HandleTypeDef *hcan){
+//	l_u32_TxComplete = 2 ;
+//}
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan){
-	l_u32_TxComplete = 2 ;
-// l_u32_GetErrCan = HAL_CAN_GetError(&hcan1);
+	//l_u32_TxComplete = 2 ;
+
+ l_u32_GetErrCan = hcan->ErrorCode; //HAL_CAN_GetError(&hcan1);
 
 //	GPIOA->ODR ^= (1 << 6);
 //			uint8_t l_au8TestSendErr[HID_FRAME_SIZE] = {0} ;
@@ -513,6 +529,7 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan){
 //				l_au8TestSendErr[5] = (uint8_t)(l_u32_GetErrCan);
 //				//l_au8TestSendErr[3] = HAL_CAN_GetError(&hcan1);
 //				HID_Frame_Write(&g_HIDFrameFIFO_Tranfer,l_au8TestSendErr);
-//				HAL_CAN_ResetError( &hcan1 );
+			//	HAL_CAN_ResetError( &hcan1 );
+ 	 hcan->ErrorCode = 0;
 }
 

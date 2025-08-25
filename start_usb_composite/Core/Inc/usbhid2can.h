@@ -18,6 +18,10 @@
 
 extern USBD_HandleTypeDef hUsbDevice;
 
+#define HEADER_CAN_CONFIGURATION 0x01U
+#define HEADER_CAN_CONFIGURATION 0x02U
+#define HEADER_CAN_SEND_MESSAGE  0x03U
+
 #define HID_FRAME_SIZE        32
 #define HID_FRAME_BUFFER_SIZE 512
 typedef struct {

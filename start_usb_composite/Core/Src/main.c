@@ -385,7 +385,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  Usb2Can_Tranfer(&g_HIDFrameFIFO_Receive);
-	  Can2Usb_Tranfer(&g_HIDFrameFIFO_Tranfer, g_au8UsbFrameTranfer);
+	 // Can2Usb_Tranfer(&g_HIDFrameFIFO_Tranfer, g_au8UsbFrameTranfer);
 
   }
   /* USER CODE END 3 */

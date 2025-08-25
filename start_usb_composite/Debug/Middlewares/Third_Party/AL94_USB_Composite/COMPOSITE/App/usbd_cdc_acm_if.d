@@ -49,7 +49,8 @@ Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_cdc_acm_if.o: \
  ../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_hid_custom_if.h \
  ../Core/Inc/tim.h \
  ../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usb_device.h \
- ../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Core/Inc/usbd_def.h
+ ../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Core/Inc/usbd_def.h \
+ ../Core/Inc/can2usbhid.h ../Core/Inc/usbhid2can.h
 ../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_cdc_acm_if.h:
 ../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Class/CDC_ACM/Inc/usbd_cdc_acm.h:
 ../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Core/Inc/usbd_ioreq.h:
@@ -103,3 +104,5 @@ Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usbd_cdc_acm_if.o: \
 ../Core/Inc/tim.h:
 ../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/App/usb_device.h:
 ../Middlewares/Third_Party/AL94_USB_Composite/COMPOSITE/Core/Inc/usbd_def.h:
+../Core/Inc/can2usbhid.h:
+../Core/Inc/usbhid2can.h:
