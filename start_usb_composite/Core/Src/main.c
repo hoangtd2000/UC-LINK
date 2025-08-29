@@ -38,7 +38,7 @@
 extern CAN_HandleTypeDef hcan1;
 extern TIM_HandleTypeDef htim4;
 extern TIM_HandleTypeDef htim5;
-
+extern UART_HandleTypeDef huart5;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -66,6 +66,11 @@ extern HID_FrameFIFO_t g_HIDFrameFIFO_Tranfer;
 //
 //extern uint8_t process_sendframe[HID_FRAME_SIZE];
 uint8_t g_au8UsbFrameTranfer[HID_FRAME_SIZE] ;
+int __io_putchar(int ch)
+{
+    HAL_UART_Transmit(&huart5, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
 //
 //
 //#define SAMPLE_POINT_SCALE 1000U
@@ -363,7 +368,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_CAN1_Init();
+  //MX_CAN1_Init();
   MX_USB_OTG_FS_PCD_Init();
   MX_UART5_Init();
   MX_I2C1_Init();
@@ -373,7 +378,7 @@ int main(void)
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
   MX_USB_DEVICE_Init();
-  HAL_TIM_Base_Start_IT(&htim4);
+  //HAL_TIM_Base_Start_IT(&htim4);
 
   /* USER CODE END 2 */
 

@@ -16,6 +16,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     //memset(g_au8UsbFrame, 0, sizeof(g_au8UsbFrame));
     if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &g_CanRxHeader, &g_au8UsbFrame[6]) == HAL_OK)
     {
+    	//GPIOA->ODR |= 1 <<6;
     	g_CanRxHeader.Timestamp = TIM5->CNT;
         // Byte 0: CMD
         g_au8UsbFrame[0] = 0x03;
@@ -32,7 +33,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		g_au8UsbFrame[15] = (g_CanRxHeader.Timestamp >> 16) & 0xFF;
 		g_au8UsbFrame[16]= (g_CanRxHeader.Timestamp >> 8) & 0xFF;
 		g_au8UsbFrame[17] = (g_CanRxHeader.Timestamp ) & 0xFF;
-        HID_Frame_Write(&g_HIDFrameFIFO_Tranfer,g_au8UsbFrame);
+        HID_Frame_Write1(&g_HIDFrameFIFO_Tranfer,g_au8UsbFrame);
     }
 }
 
@@ -49,7 +50,7 @@ uint8_t Can2Usb_Tranfer(HID_FrameFIFO_t *fifo, uint8_t *dest_buf)
     if(USBD_CUSTOM_HID_SendReport(&hUsbDevice, dest_buf, HID_FRAME_SIZE) == USBD_OK)
     {
         // Gửi thành công → đánh dấu frame đã đọc
-        fifo->tail = (fifo->tail + 1) % HID_FRAME_BUFFER_SIZE;
+        fifo->tail = (fifo->tail + 1) % HID_FRAME_BUFFER_SIZE1;
         return 1;
     }
     else
