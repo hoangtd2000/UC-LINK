@@ -142,7 +142,7 @@ namespace UsbComposite.Viewmodels
 
         private void SendCanFrame(CanFrame frame)
         {
-            if (!_canService.IsConnected || frame == null)
+            if (!_canService.IsConnected || frame == null || string.IsNullOrWhiteSpace(frame.CanId))
                 return;
 
             var bytes = frame.ToBytes();

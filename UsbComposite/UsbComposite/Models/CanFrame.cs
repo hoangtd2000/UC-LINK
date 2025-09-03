@@ -22,7 +22,7 @@ namespace UsbComposite.Models
         public ObservableCollection<BindableByte> DataBytesHex { get; set; } = new ObservableCollection<BindableByte>(Enumerable.Range(0, 8).Select(i => new BindableByte()).ToList());
         public IEnumerable<BindableByte> VisibleDataBytes => DataBytesHex.Take(Dlc);
         private bool _isCyclic;
-
+        public bool CanSend => !string.IsNullOrWhiteSpace(CanId);
         private string _canId = "000";
         public string CanId
         {
@@ -54,6 +54,7 @@ namespace UsbComposite.Models
                 }
 
                 OnPropertyChanged(nameof(CanId));
+                OnPropertyChanged(nameof(CanSend)); // 👈 cực kỳ quan trọng
             }
         }
 

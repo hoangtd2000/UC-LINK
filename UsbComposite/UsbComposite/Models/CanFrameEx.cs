@@ -17,6 +17,11 @@ public class CanFrameEx : CanFrame
         };
     }
 
+    
+
+
+
+
     private double _cycleTimeMsInt = 1000.0;
     public double CycleTimeMsInt
     {

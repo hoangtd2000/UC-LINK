@@ -392,11 +392,40 @@
                                 <DataGridTemplateColumn Header="Gửi" Width="*">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
+                                            
+                                            
+                                            <!--
                                             <Button Content="Gửi" Margin="2"
         IsEnabled="{Binding DataContext.IsConnected, RelativeSource={RelativeSource AncestorType=DataGrid}}"
         Command="{Binding DataContext.SendCanFrameCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
         CommandParameter="{Binding}"
         Style="{StaticResource CustomButtonStyle}" />
+                                            -->
+                                            <Button Content="Gửi" Margin="2" >
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource CustomButtonStyle}">
+                                                        <Setter Property="IsEnabled" Value="False"/>
+                                                        <Style.Triggers>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <!-- Điều kiện 1: dòng có CanId -->
+                                                                    <Condition Binding="{Binding CanSend}" Value="True"/>
+                                                                    <!-- Điều kiện 2: đang kết nối -->
+                                                                    <Condition Binding="{Binding DataContext.IsConnected, RelativeSource={RelativeSource AncestorType=DataGrid}}" Value="True"/>
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="IsEnabled" Value="True"/>
+                                                            </MultiDataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                                <Button.Command>
+                                                    <Binding Path="DataContext.SendCanFrameCommand" RelativeSource="{RelativeSource AncestorType=DataGrid}"/>
+                                                </Button.Command>
+                                                <Button.CommandParameter>
+                                                    <Binding/>
+                                                </Button.CommandParameter>
+                                            </Button>
+
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
