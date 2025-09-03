@@ -280,7 +280,7 @@ namespace UsbComposite.Viewmodels
                 MessageBox.Show("Thiết bị đâu ???");
             }
         }
-
+        /*
         private void DisconnectCan()
         {
             Debug.WriteLine("Đang cố gắng ngắt kết nối CAN...");
@@ -314,6 +314,42 @@ namespace UsbComposite.Viewmodels
             IsConnected = false;
             Debug.WriteLine("CAN đã ngắt kết nối.");
         }
+        */
+        private void DisconnectCan()
+        {
+            Debug.WriteLine("Đang cố gắng ngắt kết nối CAN...");
+
+            // Dừng tất cả gửi chu kỳ
+            foreach (var token in _cyclicSendTokens.Values)
+            {
+                token.Cancel();
+            }
+            _cyclicSendTokens.Clear();
+
+            // KHÔNG xóa các frame
+            // CanFrames.Clear();
+            // _frameBuffer.Clear();
+            // ReceivedFrames.Clear();
+
+            _uiUpdateTimer.Stop();
+
+            if (_canService.IsConnected)
+            {
+                SendCanDisableMessage();
+            }
+
+            if (_isFrameHandlerAttached)
+            {
+                _canService.FrameReceived -= OnFrameReceived;
+                _isFrameHandlerAttached = false;
+                Console.WriteLine("✅ FrameReceived handler đã được gỡ.");
+            }
+
+            _canService.Disconnect();
+            IsConnected = false;
+            Debug.WriteLine("CAN đã ngắt kết nối.");
+        }
+
 
         private void OnFrameReceived(byte[] data)
         {

@@ -92,7 +92,6 @@ D:\Learn\1_wpf\UC-LINK\UsbComposite\UsbComposite\bin\Debug\UsbComposite.pdb
 D:\Learn\1_wpf\UC-LINK\UsbComposite\UsbComposite\bin\Debug\HidSharp.dll
 D:\Learn\1_wpf\UC-LINK\UsbComposite\UsbComposite\bin\Debug\HidSharp.pdb
 D:\Learn\1_wpf\UC-LINK\UsbComposite\UsbComposite\bin\Debug\HidSharp.xml
-D:\Learn\1_wpf\UC-LINK\UsbComposite\UsbComposite\obj\Debug\UsbComposite.csprojAssemblyReference.cache
 D:\Learn\1_wpf\UC-LINK\UsbComposite\UsbComposite\obj\Debug\Views\UsbComportView.baml
 D:\Learn\1_wpf\UC-LINK\UsbComposite\UsbComposite\obj\Debug\Views\ConnectDeviceView.g.cs
 D:\Learn\1_wpf\UC-LINK\UsbComposite\UsbComposite\obj\Debug\Views\HelpView.g.cs
