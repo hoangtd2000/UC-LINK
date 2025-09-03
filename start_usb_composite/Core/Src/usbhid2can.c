@@ -120,7 +120,7 @@ HAL_StatusTypeDef Usb2Can_Tranfer(HID_FrameFIFO_t *fifo)
     if(fifo->head == fifo->tail){
         return HAL_ERROR;
     }
-
+   // printf("gia tri của head : %d \n", fifo->head);
     // Copy frame ra buffer tạm
     memcpy(l_au8DataUsb, fifo->frame[fifo->tail], HID_FRAME_SIZE);
 
@@ -129,8 +129,10 @@ HAL_StatusTypeDef Usb2Can_Tranfer(HID_FrameFIFO_t *fifo)
  //   if(sendResult ==  HAL_OK) {
     if(g_PtrFunc_SendCan[l_au8DataUsb[0]](l_au8DataUsb) != HAL_OK){
     // Gửi thành công → đánh dấu đã đọc
+    	//g_u32_GetErrCan = 0;
         return HAL_BUSY;
     }
+    //g_u32_GetErrCan = 0;
     fifo->tail = (fifo->tail + 1) % HID_FRAME_BUFFER_SIZE;
     return HAL_OK;
 
@@ -142,12 +144,16 @@ HAL_StatusTypeDef Usb2Can_Tranfer(HID_FrameFIFO_t *fifo)
 void delay_0_1ms_tim5(void)
 {
     uint32_t start = TIM5->CNT;//__HAL_TIM_GET_COUNTER(&htim5);
-    uint32_t ticks = 50; // 0.1ms / 0.1us = 1000 ticks
-
+    uint32_t ticks = 15; // 0.1ms / 0.1us = 1000 ticks
+//    uint32_t tickstart = HAL_GetTick();
  //   while((__HAL_TIM_GET_COUNTER(&htim5) - start) < ticks)
     while(((TIM5->CNT) - start) < ticks)
     {
         // chờ đủ số tick
+//    	if ((HAL_GetTick() - tickstart) > 10)
+//    	    {
+//    	      return ;
+//    	    }
     }
 }
 HAL_StatusTypeDef SendCanConfig(uint8_t *data){
@@ -174,31 +180,18 @@ HAL_StatusTypeDef SendCanConfig(uint8_t *data){
 	return HAL_OK;
 }
 HAL_StatusTypeDef SendCanConfigDisconnect(uint8_t *data){
-	  // 1. Vào Init mode
-//	  SET_BIT(hcan1.Instance->MCR, CAN_MCR_INRQ);
-//	  while ((hcan1.Instance->MSR & CAN_MSR_INAK) == 0);
-//
-//	  // 2. Reset error counters
-//	  hcan1.Instance->ESR = 0;
-//
-//	  // 3. Thoát Init mode → về Normal mode
-//	  CLEAR_BIT(hcan1.Instance->MCR, CAN_MCR_INRQ);
-//	  while ((hcan1.Instance->MSR & CAN_MSR_INAK) != 0);
-//
-//	  // 4. Dọn mailbox
-//	  HAL_CAN_AbortTxRequest(&hcan1,
-//	      CAN_TX_MAILBOX0 | CAN_TX_MAILBOX1 | CAN_TX_MAILBOX2);
-//
-//	  // 5. Reset ErrorCode trong HAL handle
-//	  hcan1.ErrorCode = HAL_CAN_ERROR_NONE;
 
-//	 	 	 	      	SET_BIT(hcan1.Instance->MCR, CAN_MCR_INRQ);
-//	 	 	 	      	while (!(hcan1.Instance->MSR & CAN_MSR_INAK)); // đợi Init mode
-//	 	 	 	      //	hcan1.ErrorCode = 0;
-//	 	 	 	      	CLEAR_BIT(hcan1.Instance->MCR, CAN_MCR_INRQ);
-//	 	 	 	      	while (hcan1.Instance->MSR & CAN_MSR_INAK); // đợi ready
+
+		HAL_CAN_AbortTxRequest(&hcan1,CAN_TX_MAILBOX0 | CAN_TX_MAILBOX1 | CAN_TX_MAILBOX2);
+	  // 1. Vào Init mode
+	  SET_BIT(hcan1.Instance->MCR, CAN_MCR_INRQ);
+	  while ((hcan1.Instance->MSR & CAN_MSR_INAK) == 0);
+	  // 2. Thoát Init mode → về Normal mode
+	  CLEAR_BIT(hcan1.Instance->MCR, CAN_MCR_INRQ);
+	  while ((hcan1.Instance->MSR & CAN_MSR_INAK) != 0);
 
 	  if ( HAL_CAN_DeInit(&hcan1) != HAL_OK)  //HAL_CAN_Stop(&hcan1) != HAL_OK  ||
+//	  if (HAL_CAN_Stop(&hcan1) != HAL_OK  )
 	  {
 		 CAN_ConfigStatus.CAN_ConfigStatus.CanStop = HAL_ERROR ;
 	     return HAL_ERROR;
@@ -213,26 +206,10 @@ HAL_StatusTypeDef SendCanConfigDisconnect(uint8_t *data){
 		  CAN_ConfigStatus.CAN_ConfigStatus.TimestempStop = HAL_ERROR ;
 		  return HAL_ERROR;
 	  }
-//	  HAL_CAN_StateTypeDef st = HAL_CAN_GetState(&hcan1);
-//	  	  uint32_t err = hcan1.ErrorCode;
-//	  	  uint32_t esr = hcan1.Instance->ESR;   // Error Status Register
-//	  	  uint8_t TEC = esr & 0xFF;
-//	  	  uint8_t REC = (esr >> 8) & 0xFF;
-//
-//	  	  printf("sau khi disconnect : HAL state=%u, ErrorCode=0x%08lX, ESR=0x%08lX, TEC=%u, REC=%u\r\n",
-//	  	         st, err, esr, TEC, REC);
-
-
-
-//		HAL_CAN_ResetError(&hcan1);
-//		HAL_CAN_AbortTxRequest(&hcan1, CAN_TX_MAILBOX0 | CAN_TX_MAILBOX1 | CAN_TX_MAILBOX2);
-
-
 	  return HAL_OK;
 }
 
 HAL_StatusTypeDef SendCanConfigConnect(uint8_t *data){
-
 
 	  if(SendCanConfigBaud(data) != HAL_OK){
 		  CAN_ConfigStatus.CAN_ConfigStatus.ConfigBaudrate =  HAL_ERROR;
@@ -246,22 +223,15 @@ HAL_StatusTypeDef SendCanConfigConnect(uint8_t *data){
 		  CAN_ConfigStatus.CAN_ConfigStatus.CanStart =  HAL_ERROR;
 		  return HAL_ERROR;
 	  }
-	if(HAL_TIM_Base_Start_IT(&htim4) !=  HAL_OK){
-		CAN_ConfigStatus.CAN_ConfigStatus.TimerRxCanStart =  HAL_ERROR;
-		return HAL_ERROR;
-	}
 	  if(HAL_TIM_Base_Start(&htim5) != HAL_OK){
 		  CAN_ConfigStatus.CAN_ConfigStatus.TimestempStart =  HAL_ERROR;
 		  return HAL_ERROR;
 	  }
-//	  HAL_CAN_StateTypeDef st = HAL_CAN_GetState(&hcan1);
-//	  uint32_t err = hcan1.ErrorCode;
-//	  uint32_t esr = hcan1.Instance->ESR;   // Error Status Register
-//	  uint8_t TEC = esr & 0xFF;
-//	  uint8_t REC = (esr >> 8) & 0xFF;
-//
-//	  printf("sau khi config : HAL state=%u, ErrorCode=0x%08lX, ESR=0x%08lX, TEC=%u, REC=%u\r\n",
-//	         st, err, esr, TEC, REC);
+	if(HAL_TIM_Base_Start_IT(&htim4) !=  HAL_OK){
+		CAN_ConfigStatus.CAN_ConfigStatus.TimerRxCanStart =  HAL_ERROR;
+		return HAL_ERROR;
+	}
+	g_u32_GetErrCan = 0;
 	  return HAL_OK;
 }
 
@@ -277,7 +247,7 @@ HAL_StatusTypeDef SendCanConfigBaud(uint8_t *data){
 	hcan1.Init.TimeSeg1 = (config.tseg1 - 1 ) << 16;
 	hcan1.Init.TimeSeg2 = (config.tseg2 - 1 ) << 20;
 	hcan1.Init.TimeTriggeredMode = DISABLE;
-	hcan1.Init.AutoBusOff = ENABLE;
+	hcan1.Init.AutoBusOff = DISABLE;
 	hcan1.Init.AutoWakeUp = DISABLE;
 	hcan1.Init.AutoRetransmission = DISABLE;
 	hcan1.Init.ReceiveFifoLocked = DISABLE;
@@ -419,11 +389,12 @@ HAL_StatusTypeDef CanRx_FilterRange(uint32_t start_id, uint32_t end_id, uint8_t 
 
 
 HAL_StatusTypeDef SendCanMessage(uint8_t *data){
+
 	uint32_t id = (data[1]<< 24) |(data[2]<< 16) |(data[3]<< 8) | data[4];
+	//g_u32_GetErrCan = 0;
 	if(CanTx_init(id, data[5], &data[6]) != HAL_OK ){
 		return HAL_ERROR;
 	}
-	 // printf("Ra khoi ham truyen: ErrorCode=0x%08lX\r\n", g_u32_GetErrCan);
 	if( g_u32_GetErrCan != HAL_OK){
 			data[14] = (g_u32_GetErrCan >> 24) & 0xFF;
 			data[15] = (g_u32_GetErrCan >> 16) & 0xFF;
@@ -431,7 +402,9 @@ HAL_StatusTypeDef SendCanMessage(uint8_t *data){
 			data[17] = (g_u32_GetErrCan ) & 0xFF;
 			HID_Frame_Write1(&g_HIDFrameFIFO_Tranfer,data);
 			if (g_u32_GetErrCan & HAL_CAN_ERROR_BOF){
-				return HAL_OK;
+				g_HIDFrameFIFO_Receive.tail= (g_HIDFrameFIFO_Receive.tail +  1) % HID_FRAME_BUFFER_SIZE;
+				GPIOA->ODR ^= 1<<7 ;
+				return HAL_ERROR;
 			 	    }
 			GPIOA->ODR ^= 1<<7 ;
 			g_u32_GetErrCan = 0;
@@ -456,25 +429,10 @@ HAL_StatusTypeDef CanTx_init(uint32_t id, uint8_t DlcAndType, uint8_t *data){
 	g_CanTxHeader.RTR = CAN_RTR_DATA;
 	g_CanTxHeader.DLC = (DlcAndType >> 4);
 	g_CanTxHeader.TransmitGlobalTime = DISABLE;
-	if( g_u32_GetErrCan != HAL_OK){
-		//printf("loi trong ham truyen: ErrorCode=0x%08lX\r\n", g_u32_GetErrCan);
-		if (g_u32_GetErrCan & HAL_CAN_ERROR_BOF){
-						return HAL_OK;
-					 	    }
-
-		return HAL_ERROR;
-	}
- 	 // printf("Da vao ham truyen: ErrorCode=0x%08lX\r\n",
- 	 //        g_u32_GetErrCan);
 	HAL_CAN_AddTxMessage(&hcan1, &g_CanTxHeader, data, &g_u32TxMailbox);
 	delay_0_1ms_tim5();
 	return HAL_OK;
 }
-
-
-
-
-
 
 
 uint8_t HID_Frame_Write(HID_FrameFIFO_t *fifo, uint8_t *data)
@@ -526,42 +484,17 @@ uint8_t HID_Frame_Read(HID_FrameFIFO_t *fifo, uint8_t *dest_buf) {
 //void HAL_CAN_TxMailbox0AbortCallback(CAN_HandleTypeDef *hcan){
 //	l_u32_TxComplete = 2 ;
 //}
-void HAL_CAN_RxFifo0OverrunCallback(CAN_HandleTypeDef *hcan){
-	//GPIOA->ODR ^= (1 << 6);
-	//GPIOA->ODR |= 1 <<6;
-}
+//void HAL_CAN_RxFifo0OverrunCallback(CAN_HandleTypeDef *hcan){
+//	//GPIOA->ODR ^= (1 << 6);
+//	//GPIOA->ODR |= 1 <<6;
+//}
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan){
 	g_u32_GetErrCan = hcan->ErrorCode; //HAL_CAN_GetError(&hcan1);
  	if (hcan->ErrorCode & HAL_CAN_ERROR_BOF)
  	    {
  	        // Xử lý riêng cho Bus-Off
- 	        // Ví dụ: reset CAN, khởi tạo lại, thông báo lỗi...
- 	        printf("CAN bus is in BUS-OFF state!\n");
- 	      HAL_CAN_StateTypeDef st = HAL_CAN_GetState(&hcan1);
- 	      	  uint32_t err = hcan1.ErrorCode;
- 	      	  uint32_t esr = hcan1.Instance->ESR;   // Error Status Register
- 	      	  uint8_t TEC = esr & 0xFF;
- 	      	  uint8_t REC = (esr >> 8) & 0xFF;
-
- 	      	  printf("Ngat loi bus off : HAL state=%u, ErrorCode=0x%08lX, ESR=0x%08lX, TEC=%u, REC=%u\r\n",
- 	      	         st, err, esr, TEC, REC);
+ 			delay_0_1ms_tim5();
  	       HAL_CAN_Stop(&hcan1);
-// 	      	  HAL_CAN_AbortTxRequest(&hcan1,
-// 	      	      CAN_TX_MAILBOX0 | CAN_TX_MAILBOX1 | CAN_TX_MAILBOX2);
- 	    //  HAL_CAN_DeInit(&hcan1);
-
-
-// 	 	 	      	SET_BIT(hcan1.Instance->MCR, CAN_MCR_INRQ);
-// 	 	 	      	while (!(hcan1.Instance->MSR & CAN_MSR_INAK)); // đợi Init mode
-// 	 	 	      //	hcan1.ErrorCode = 0;
-// 	 	 	      	CLEAR_BIT(hcan1.Instance->MCR, CAN_MCR_INRQ);
-// 	 	 	      	while (hcan1.Instance->MSR & CAN_MSR_INAK); // đợi ready
-
-// 	      	HAL_CAN_DeInit(&hcan1);
-// 	      		 HAL_CAN_AbortTxRequest(&hcan1,
-// 	      		 	          CAN_TX_MAILBOX0 | CAN_TX_MAILBOX1 | CAN_TX_MAILBOX2);
- 	        // Reset ErrorCode nếu muốn
- 	     //   hcan->ErrorCode &= ~HAL_CAN_ERROR_BOF;
  	    }
  	hcan->ErrorCode = 0;
 }
@@ -574,7 +507,7 @@ uint8_t HID_Frame_Write1(HID_FrameFIFO_t *fifo, uint8_t *data)
     // Kiểm tra tràn bộ đệm
     if (nextHead == fifo->tail) {
         // Buffer đầy
-    	GPIOA->ODR |= 1 <<7;
+    	//GPIOA->ODR |= 1 <<7;
         return 0;
     }
 
