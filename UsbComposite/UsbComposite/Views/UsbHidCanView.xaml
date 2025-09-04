@@ -4,8 +4,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:UsbComposite.Views"
+             xmlns:helpers="clr-namespace:UsbComposite.Helpers"
         mc:Ignorable="d">
     <UserControl.Resources>
+        <helpers:InverseBoolConverter x:Key="InverseBoolConverter" />
         <SolidColorBrush x:Key="DefaultForeground" Color="black"/>
         <SolidColorBrush x:Key="DefaultBackground" Color="White"/>
         <SolidColorBrush x:Key="DefaultBorder" Color="#808080"/>
@@ -211,10 +213,62 @@
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="20*"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="2*"/>
                 </Grid.RowDefinitions>
+                
+                <!--
+                <StatusBar Grid.Row=" 4" Grid.Column="1" >
+                    <StatusBarItem>
+                        <TextBlock Text="Status : "  VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </StatusBarItem>
+                </StatusBar>
+                -->
+                <Border Grid.Row="5" Grid.Column="1"  
+                            BorderBrush="#FF172976"
+                       CornerRadius="10" Background="White" >
+                    <Grid >
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding ConnectionStatusText}"
+                                   Grid.Column="0"
+                                   FontSize="15" FontWeight="Bold" 
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" Foreground="{Binding ConnectionStatusBrush}"/>
 
-               
-                    <Border Grid.Row="3" Grid.Column="1"
+                        <TextBlock Text="{Binding CurrentBaudRate}"
+                                   Visibility="{Binding BaudrateVisibility}"
+                                   Grid.Column="1"
+                                   FontSize="15" FontWeight="Bold" 
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" Foreground="Green"/>
+
+                        <TextBlock Text="Status: "
+                                   Visibility="{Binding BaudrateVisibility}"
+                                   Grid.Column="3"
+                                   FontSize="15" FontWeight="Bold" 
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center" Foreground="Green"/>
+                        <TextBlock Text="{Binding StatusText}"
+                                    Visibility="{Binding BaudrateVisibility}"
+                                   Grid.Column="4"
+                                   FontSize="15" FontWeight="Bold" 
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Center" Foreground="Green"/>
+
+
+                    </Grid>
+
+                    
+                    
+                    
+                </Border>
+
+                <Border Grid.Row="3" Grid.Column="1"
                             BorderBrush="#738A9C"
                             BorderThickness="0"
                             CornerRadius="5"
@@ -574,6 +628,7 @@
                 </Border>
 
             </Grid>
+            
 
         </Grid>
     </Viewbox>

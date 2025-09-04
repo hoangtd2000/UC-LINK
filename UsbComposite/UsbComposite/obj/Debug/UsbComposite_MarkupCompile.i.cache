@@ -4,17 +4,17 @@
 winexe
 C#
 .cs
-D:\Work\chore\UsbComposite\UsbComposite\obj\Debug\
+D:\UC-LINK\UsbComposite\UsbComposite\obj\Debug\
 UsbComposite
 none
 false
 DEBUG;TRACE
-D:\Work\chore\UsbComposite\UsbComposite\App.xaml
+D:\UC-LINK\UsbComposite\UsbComposite\App.xaml
 6357195021
 
-28-1711077599
-14-2074149039
+251387409868
+14-2109337503
 Views\ConnectDeviceView.xaml;Views\HelpView.xaml;Views\InforDeviceView.xaml;Views\MainWindow.xaml;Views\UsbComportView.xaml;Views\UsbHidCanView.xaml;
 
-True
+False
 

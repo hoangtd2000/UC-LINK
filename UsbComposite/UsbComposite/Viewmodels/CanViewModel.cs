@@ -34,6 +34,13 @@ namespace UsbComposite.Viewmodels
         private const int UI_UPDATE_INTERVAL_MS = 50;
         private const int MAX_FRAMES_PER_UPDATE = 100;
 
+
+
+        private DispatcherTimer _errorDecayTimer;
+        private DateTime _lastErrorUtc = DateTime.MinValue;
+        private const int ERROR_DECAY_MS = 50;
+
+
         //public ObservableCollection<CanFrame> ReceivedFrames { get; } = new ObservableCollection<CanFrame>();
         public ObservableCollection<CanFrameEx> ReceivedFrames { get; } = new ObservableCollection<CanFrameEx>();
 
@@ -53,35 +60,152 @@ namespace UsbComposite.Viewmodels
         public ICommand SendCanFrameCommand { get; }
         public ICommand ClearReceiveCommand { get; }
 
+        private string _lastErrorMessage = "";
+        public string LastErrorMessage
+        {
+            get { return _lastErrorMessage; }
+            set { if (_lastErrorMessage == value) return; _lastErrorMessage = value; OnPropertyChanged(); }
+        }
+        public System.Windows.Visibility ErrorVisibility
+        {
+            get { return string.IsNullOrEmpty(LastErrorMessage) ? System.Windows.Visibility.Collapsed : System.Windows.Visibility.Visible; }
+        }
+
+
+
         private CanConfigViewModel _config;
         public CanConfigViewModel Config
         {
-            get => _config;
-            set { _config = value; OnPropertyChanged(); }
+            get { return _config; }
+            set
+            {
+                if (ReferenceEquals(_config, value)) return;
+
+                if (_config != null)
+                    _config.PropertyChanged -= OnConfigPropertyChanged;
+
+                _config = value;
+                OnPropertyChanged();
+
+                if (_config != null)
+                {
+                    _config.PropertyChanged += OnConfigPropertyChanged;
+                    UpdateBaudDisplay();
+                }
+                else
+                {
+                    CurrentBaudRate = "—";
+                }
+            }
+        }
+
+        private void OnConfigPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "SelectedBaudRate")
+                UpdateBaudDisplay();
         }
 
         private bool _isConnected;
         public bool IsConnected
         {
-            get => _isConnected;
+            get { return _isConnected; }
             set
             {
+                if (_isConnected == value) return;
                 _isConnected = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(IsDisconnected));
+                OnPropertyChanged("IsDisconnected");
+                OnPropertyChanged("BaudrateVisibility"); // nếu có
+
+                UpdateConnectionDisplay();
+
+                if (!_isConnected) // ngắt kết nối → dừng poll
+                {
+                    
+                }
             }
+        }
+        public System.Windows.Visibility BaudrateVisibility
+        {
+            get { return IsConnected ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed; }
+        }
+        public bool IsDisconnected
+        {
+            get { return !IsConnected; }
         }
 
         private bool _isDeviceConnected;
         public bool IsDeviceConnected
         {
-            get => _isDeviceConnected;
+            get { return _isDeviceConnected; }
             set
             {
+                if (_isDeviceConnected == value) return;
                 _isDeviceConnected = value;
                 OnPropertyChanged();
             }
         }
+
+        // ====== 2 string hiển thị + 1 Brush cho màu ======
+        private string _currentBaudRate = "—";
+        public string CurrentBaudRate
+        {
+            get { return _currentBaudRate; }
+            set
+            {
+                if (_currentBaudRate == value) return;
+                _currentBaudRate = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private string _connectionStatusText = "Chưa kết nối";
+        public string ConnectionStatusText
+        {
+            get { return _connectionStatusText; }
+            set
+            {
+                if (_connectionStatusText == value) return;
+                _connectionStatusText = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private Brush _connectionStatusBrush = Brushes.IndianRed;
+        public Brush ConnectionStatusBrush
+        {
+            get { return _connectionStatusBrush; }
+            set
+            {
+                if (_connectionStatusBrush == value) return;
+                _connectionStatusBrush = value;
+                OnPropertyChanged();
+            }
+        }
+
+        // ====== Helpers ======
+        private void UpdateBaudDisplay()
+        {
+            if (Config != null)
+                CurrentBaudRate = Config.SelectedBaudRate.ToString() + " kbit/s";
+            else
+                CurrentBaudRate = "—";
+        }
+
+        private void UpdateConnectionDisplay()
+        {
+            ConnectionStatusText = IsConnected ? "Connected to hardware UC-LINK " : "Not connect";
+            ConnectionStatusBrush = IsConnected ? Brushes.Green : Brushes.Red;
+        }
+
+
+        private string _statusText = "OK";
+        public string StatusText
+        {
+            get { return _statusText; }
+            set { if (_statusText == value) return; _statusText = value; OnPropertyChanged(); }
+        }
+
 
 
         private void StartCyclicSendWithStopwatch(CanFrame frame)
@@ -151,7 +275,7 @@ namespace UsbComposite.Viewmodels
 
 
 
-        public bool IsDisconnected => !IsConnected;
+        //public bool IsDisconnected => !IsConnected;
 
         public CanViewModel()
         {
@@ -168,7 +292,14 @@ namespace UsbComposite.Viewmodels
             _uiUpdateTimer.Interval = TimeSpan.FromMilliseconds(UI_UPDATE_INTERVAL_MS);
             _uiUpdateTimer.Tick += UiUpdateTimer_Tick;
 
-            
+
+            _errorDecayTimer = new DispatcherTimer();
+            _errorDecayTimer.Interval = TimeSpan.FromMilliseconds(ERROR_DECAY_MS);
+            _errorDecayTimer.Tick += ErrorDecayTimer_Tick;
+
+
+            UpdateBaudDisplay();
+            UpdateConnectionDisplay();
             _canService.Disconnected += () =>
             {
                 Application.Current.Dispatcher.Invoke(() =>
@@ -180,10 +311,46 @@ namespace UsbComposite.Viewmodels
                     }
                 });
             };
-            
-
-
+           
         }
+
+
+        private void ErrorDecayTimer_Tick(object sender, EventArgs e)
+        {
+            if (_lastErrorUtc == DateTime.MinValue)
+            {
+                _errorDecayTimer.Stop();
+                return;
+            }
+
+            double elapsed = (DateTime.UtcNow - _lastErrorUtc).TotalMilliseconds;
+            if (elapsed >= ERROR_DECAY_MS)
+            {
+                // Sau 10ms không có lỗi mới -> hiển thị OK
+                StatusText = "OK";
+
+                _lastErrorUtc = DateTime.MinValue;
+                _errorDecayTimer.Stop();
+            }
+        }
+
+        // Gọi khi nhận lỗi non-critical (0x01 / 0x02 không có BOF)
+        // Timer chỉ chạy khi có lỗi để không tốn CPU lúc bình thường
+        private void ShowTransientError(string message)
+        {
+            StatusText = message;
+            _lastErrorUtc = DateTime.UtcNow;
+            if (!_errorDecayTimer.IsEnabled) _errorDecayTimer.Start();
+        }
+
+        // Gọi khi nhận OK rõ ràng từ thiết bị (err == 0) hoặc khi muốn reset ngay
+        private void ShowOkNow()
+        {
+            StatusText = "OK";
+            _lastErrorUtc = DateTime.MinValue;
+            if (_errorDecayTimer.IsEnabled) _errorDecayTimer.Stop();
+        }
+
 
         private void CanFrames_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
@@ -280,41 +447,7 @@ namespace UsbComposite.Viewmodels
                 MessageBox.Show("Thiết bị đâu ???");
             }
         }
-        /*
-        private void DisconnectCan()
-        {
-            Debug.WriteLine("Đang cố gắng ngắt kết nối CAN...");
-
-            // Dừng tất cả gửi chu kỳ
-            foreach (var token in _cyclicSendTokens.Values)
-            {
-                token.Cancel();
-            }
-            _cyclicSendTokens.Clear();
-
-            CanFrames.Clear();
-
-            _uiUpdateTimer.Stop();
-            _frameBuffer.Clear();
-            ReceivedFrames.Clear();
-
-            if (_canService.IsConnected)
-            {
-                SendCanDisableMessage();
-            }
-
-            if (_isFrameHandlerAttached)
-            {
-                _canService.FrameReceived -= OnFrameReceived;
-                _isFrameHandlerAttached = false;
-                Console.WriteLine("✅ FrameReceived handler đã được gỡ.");
-            }
-
-            _canService.Disconnect();
-            IsConnected = false;
-            Debug.WriteLine("CAN đã ngắt kết nối.");
-        }
-        */
+        
         private void DisconnectCan()
         {
             Debug.WriteLine("Đang cố gắng ngắt kết nối CAN...");
@@ -351,14 +484,187 @@ namespace UsbComposite.Viewmodels
         }
 
 
+      
+
+
+
+        // Hiển thị lỗi lên UI và log
+        private void SetErrorUI(string message, bool isCritical)
+        {
+            LastErrorMessage = message;
+            ConnectionStatusText = message;
+            ConnectionStatusBrush = Brushes.IndianRed;
+
+            OnPropertyChanged("LastErrorMessage");
+            OnPropertyChanged("ConnectionStatusText");
+            OnPropertyChanged("ConnectionStatusBrush");
+            OnPropertyChanged("ErrorVisibility"); // nếu bạn có dùng ErrorVisibility
+
+            System.Diagnostics.Debug.WriteLine("[HID/CAN ERROR] " + message);
+
+            try
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show(message, "CAN/HID Error", MessageBoxButton.OK,
+                        isCritical ? MessageBoxImage.Stop : MessageBoxImage.Warning);
+                });
+            }
+            catch { /* ignore if no UI */ }
+        }
+        /*
+        private void HandleConfigError01(byte[] data)
+        {
+            if (data == null || data.Length <= 12)
+            {
+                ShowTransientError("[CFG] Dữ liệu lỗi không hợp lệ (thiếu data[12])");
+                return;
+            }
+
+            byte code = data[12];
+
+            // Map theo firmware của bạn; ví dụ:
+            string msg;
+            switch (code)
+            {
+                case 0x00: msg = "[CFG] OK"; break;
+                case 0x01: msg = "[CFG] Baudrate không hợp lệ"; break;
+                case 0x02: msg = "[CFG] Sample point không hợp lệ"; break;
+                case 0x03: msg = "[CFG] Khoảng Filter ID không hợp lệ"; break;
+                case 0x04: msg = "[CFG] Thiết bị bận (BUSY)"; break;
+                case 0x05: msg = "[CFG] Buffer đầy"; break;
+                case 0x06: msg = "[CFG] USB HID truyền thất bại"; break;
+                case 0x07: msg = "[CFG] CAN controller lỗi khởi tạo"; break;
+                default: msg = "[CFG] Unknown error 0x" + code.ToString("X2"); break;
+            }
+
+            if (code == 0x00)
+                ShowOkNow();             // Nếu firmware báo OK rõ ràng -> trả OK ngay
+            else
+                ShowTransientError(msg); // Lỗi -> hiển thị rồi tự về OK sau 10ms nếu yên ắng
+        }
+
+        */
+        // Decode các bit lỗi của cmd 0x01 (data[12])
+        private string DecodeConfigErrorFlags(byte flags)
+        {
+            if (flags == 0x00)
+                return "[CFG] OK";
+
+            var parts = new System.Collections.Generic.List<string>();
+
+            // bit mapping theo struct bạn đưa
+            if ((flags & (1 << 0)) != 0) parts.Add("TimerRxCanStart");
+            if ((flags & (1 << 1)) != 0) parts.Add("TimestempStart");   // bạn viết 'Timestemp', giữ nguyên :)
+            if ((flags & (1 << 2)) != 0) parts.Add("ConfigBaudrate");
+            if ((flags & (1 << 3)) != 0) parts.Add("ConfigFilter");
+            if ((flags & (1 << 4)) != 0) parts.Add("CanStart");
+            if ((flags & (1 << 5)) != 0) parts.Add("TimerRxCanStop");
+            if ((flags & (1 << 6)) != 0) parts.Add("TimestempStop");
+            if ((flags & (1 << 7)) != 0) parts.Add("CanStop");
+
+            // Ghép thông điệp
+            return "[CFG] Error: " + string.Join(", ", parts.ToArray()) + " (0x" + flags.ToString("X2") + ")";
+        }
+
+        private void HandleConfigError01(byte[] data)
+        {
+            if (data == null || data.Length <= 12)
+            {
+                ShowTransientError("[CFG] Dữ liệu lỗi không hợp lệ (thiếu data[12])");
+                return;
+            }
+
+            byte flags = data[12];
+            string msg = DecodeConfigErrorFlags(flags);
+
+            if (flags == 0x00)
+                ShowOkNow();          // không có lỗi → OK ngay
+            else
+                ShowTransientError(msg); // có lỗi → hiển thị rồi tự về OK sau timeout 1-shot
+        }
+
+
+        private void HandleCanSendError02(byte[] data)
+        {
+            if (data == null || data.Length <= 17)
+            {
+                ShowTransientError("[RUN] Dữ liệu lỗi không hợp lệ (thiếu data[14..17])");
+                return;
+            }
+
+            uint err = ((uint)data[14] << 24) |
+                       ((uint)data[15] << 16) |
+                       ((uint)data[16] << 8) |
+                       (uint)data[17];
+
+            if (err == 0)
+            {
+                ShowOkNow(); // thiết bị báo OK -> hiển thị OK ngay
+                return;
+            }
+
+            bool ewg = (err & 0x00000001u) != 0;
+            bool epv = (err & 0x00000002u) != 0;
+            bool bof = (err & 0x00000004u) != 0;
+
+            string msg = "[RUN] " +
+                         (ewg ? "EWG " : "") +
+                         (epv ? "EPV " : "") +
+                         (bof ? "BOF " : "");
+            msg = msg.Trim();
+
+            if (bof)
+            {
+                // BỎ TICK gửi chu kỳ rồi ngắt kết nối — không cần poll 10ms
+                try
+                {
+                    foreach (var f in CanFrames) f.IsCyclic = false; // bỏ tích IsCyclic
+                }
+                catch { /* ignore */ }
+
+                StatusText = msg;       // có thể giữ thông điệp lỗi tức thời
+                _lastErrorUtc = DateTime.MinValue;
+                if (_errorDecayTimer.IsEnabled) _errorDecayTimer.Stop();
+
+                DisconnectCan();
+                return;
+            }
+
+            // Non-critical: hiển thị lỗi rồi tự về OK nếu 10ms không lỗi mới
+            ShowTransientError(msg);
+        }
+
+
+
         private void OnFrameReceived(byte[] data)
         {
             if (data == null || data.Length < 18)
                 return;
 
             byte cmd = data[0];
-            if (cmd != 0x03)
+
+
+
+
+            /// Ưu tiên xử lý các header lỗi
+            if (cmd == 0x01)
+            {
+                HandleConfigError01(data);
                 return;
+            }
+            if (cmd == 0x02)
+            {
+                HandleCanSendError02(data);
+                return;
+            }
+
+            // 🔵 Header khung CAN
+            if (cmd != 0x03) return;
+
+
+
+
 
             byte rawInfo = data[1];
             byte dlc = (byte)((rawInfo >> 4) & 0x0F);
@@ -500,12 +806,6 @@ namespace UsbComposite.Viewmodels
                 }
             }
         }
-
-
-
-
-
-
 
         private const byte HID_OUTPUT_REPORT_ID = 0x00;
 

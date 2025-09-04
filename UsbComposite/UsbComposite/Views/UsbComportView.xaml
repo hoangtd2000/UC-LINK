@@ -216,8 +216,8 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="18*" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="2*" />
                 <RowDefinition Height="*" />
+
                     </Grid.RowDefinitions>
 
             <!-- Gửi từng dòng -->
@@ -239,7 +239,7 @@
                     <!-- Hàng 1 -->
                     <TextBlock Grid.Row="0"
                    Text="Gửi từng dòng"
-                   FontSize="16"
+                   FontSize="18"
                    FontFamily="Segoe UI Semibold"/>
 
                     <!-- Hàng 2 -->
@@ -254,7 +254,7 @@
               Background="White"
               BorderThickness="0"
               GridLinesVisibility="None"
-              FontSize="12"
+              FontSize="16"
               FontFamily="Segoe UI Semibold" 
              >
 
@@ -423,7 +423,7 @@
         BorderBrush="#738A9C"
         Margin="0,10,10,10"
         BorderThickness="0"
-        FontSize="16"  
+        FontSize="18"  
         HorizontalAlignment="Stretch"
         VerticalAlignment="Stretch" FontFamily="Segoe UI Semibold">
 
@@ -432,7 +432,7 @@
                         
                                 <TextBox x:Name="txtReceiveLog"
                        Margin="5"
-                     FontSize="12"
+                     FontSize="16"
                      Foreground="#262626"
                      IsReadOnly="True"
                                IsUndoEnabled="False" 
@@ -574,8 +574,8 @@
                             BorderBrush="#FF172976"
                        CornerRadius="10" Background="White" >
 
-                        <TextBlock Text="Trạng thái kết nối  " 
-                                   FontSize="30" FontWeight="Bold" 
+                        <TextBlock Text="-------------------------------------------------  " 
+                                   FontSize="20" FontWeight="Bold" 
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center" Foreground="#FFDA6300"/>
                     </Border>
